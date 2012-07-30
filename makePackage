@@ -1,0 +1,58 @@
+#!/bin/bash
+
+CONTROL_FILE="debian/DEBIAN/control"
+PACKAGE="libnexus"
+INSTALL_BASE="debian/usr/local"
+
+if [ $# != 1 ]; then
+  echo "makePackage <version>"
+  exit 1
+fi
+
+clean()
+{
+  echo "Cleaning install directory."
+  rm -Rf debian/usr/*
+  rm -Rf debian/etc/*
+}
+
+if [ $1 = clean ] ; then
+  clean
+  exit 0
+fi
+
+ARCH=`dpkg --print-architecture`
+VER=$1
+
+clean
+
+echo `pwd`
+BASE_DIR=`pwd`
+mkdir $ARCH-build
+cd $ARCH-build
+export CXXFLAGS=""
+../configure --prefix=$BASE_DIR/debian/usr/local
+#make clean
+make
+make install
+../configure
+cd $BASE_DIR
+
+
+rm -R debian/usr/local/include/
+rm debian/usr/local/lib/*.la
+rm debian/usr/local/lib/*.a
+rm -R debian/usr/local/bin
+
+# Update version in control file
+
+echo "Setting control to version $VER" 
+sed -e "s/Version:.*/Version: $VER/g"  <$CONTROL_FILE>tmp.file
+mv tmp.file $CONTROL_FILE
+
+echo "Setting control to Architecture $ARCH" 
+sed -e "s/Architecture:.*/Architecture: $ARCH/g"  <$CONTROL_FILE>tmp.file
+mv tmp.file $CONTROL_FILE
+
+
+dpkg-deb --build debian/ "$PACKAGE-$ARCH-$VER.deb"
