@@ -376,26 +376,13 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Unable to fork service loop %d\n", n);
 		return 1;
 	}
-
+/*
 	while (1) {
 
 		usleep(50000);
-
-		/*
-		 * This broadcasts to all dumb-increment-protocol connections
-		 * at 20Hz.
-		 *
-		 * We're just sending a character 'x', in these examples the
-		 * callbacks send their own per-connection content.
-		 *
-		 * You have to send something with nonzero length to get the
-		 * callback actions delivered.
-		 *
-		 * We take care of pre-and-post padding allocation.
-		 */
 		//libwebsockets_broadcast(&protocols[PROTOCOL_COMMOTION_WS],&buf[LWS_SEND_BUFFER_PRE_PADDING], 1);
 	}
-
+*/
 #endif
 
 	libwebsocket_context_destroy(context);
