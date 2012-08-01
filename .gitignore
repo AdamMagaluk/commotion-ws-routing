@@ -3,3 +3,4 @@ build
 nbproject
 *.deb
 *-build/
+tests/node-server/node_modules/

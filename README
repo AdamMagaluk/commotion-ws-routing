@@ -1,4 +1,7 @@
-Libnexus (Nexus site connector)
+Commotion Websocket Messaging Service
+
+A websocket server that allows routing of websockets between clients connected to multiple
+commotion aps.
 
 Version: 0.0.1 ()
 Tagline: 

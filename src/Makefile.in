@@ -66,7 +66,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_wsroutingserver_OBJECTS = main.$(OBJEXT)
+am_wsroutingserver_OBJECTS = main.$(OBJEXT) commotion.$(OBJEXT)
 wsroutingserver_OBJECTS = $(am_wsroutingserver_OBJECTS)
 wsroutingserver_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -216,7 +216,7 @@ DATE = `date -R`
 AM_CPPFLAGS = -I $(top_srcdir)/src/ -DBUILD_DATE=\"`date '+%Y%m%d-%H:%M'`\" -DHG_VERSION=\"`hg id | sed 's/ /_/g'`\"
 AM_LDFLAGS = 
 ACLOCAL_AMFLAGS = -I m4 
-wsroutingserver_SOURCES = main.c
+wsroutingserver_SOURCES = main.c commotion.c
 all: all-am
 
 .SUFFIXES:
@@ -307,6 +307,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/commotion.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 
 .c.o:
