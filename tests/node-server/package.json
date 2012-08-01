@@ -1,0 +1,16 @@
+{
+  "name" : "test-node-server",
+  "description" : "",
+  "version" : "0.0.1",
+  "author" : "Adam Magaluk <AdamM@IlluminatingConcepts.com>",
+
+  "dependencies": {
+    "express": "2.5.x",
+    "ejs" : ">=0.4.3"
+  },
+  "engines": {
+    "node": "0.8.x",
+    "npm": "1.1.x"
+  }
+
+}

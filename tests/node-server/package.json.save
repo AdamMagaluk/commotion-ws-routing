@@ -1,0 +1,13 @@
+{
+  "name" : "software-for-detroit",
+"description" : "A demo application for ic's footfall service.",
+  "version" : "0.0.1",
+  "author" : "Adam Magaluk <AdamM@IlluminatingConcepts.com>",
+  "engines" : ["node"],
+  "dependencies" : {
+    "ejs" : ">=0.4.3",
+    "express" : ">=2.4.3",
+    "socket.io" : ">=0.7.8",
+    "async" : ">=0.1.22"
+ }
+}
