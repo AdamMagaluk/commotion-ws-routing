@@ -62,9 +62,11 @@
             REQUEST_TOPOLOGY : 3
         };
         
-        
         //Callback map to handle all messages for applications.
         this.callbackmap = {};
+        
+        //
+        this.tmpCallBack = null;
         
         //Only allow commotion-ws protocol.
         this.ws = new WebSocket(url,"commotion-ws",proxyHost,proxyPort,headers);
@@ -84,12 +86,11 @@
         }
         
         // Handle all websocket data
-        this.ws.onmessage = function(data){
-            alert(data)
-            console.log("Data Recieved:" + data);
+        this.ws.onmessage = function(e){
+            var json =  eval('(' + e.data + ')');
+            console.log(json);
+            
         };
-        
-        
         
         this._send_formated_msg = function(mt,dst,data){
             if(dst === null) dst = "0.0.0.0";
@@ -100,7 +101,6 @@
             this.ws.send(text);     
         }
     };  
-    
     
     /**
      * Register message callbacks

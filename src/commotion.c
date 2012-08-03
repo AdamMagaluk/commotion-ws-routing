@@ -109,19 +109,34 @@ static int msg_client_connect(struct libwebsocket_context *context,
 static int msg_req_topology(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, json_t *root) {
 
+    struct per_session_data__ws_client* pss = user;
+    
+    json_t* retRoot = json_array();
 
-    unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 512 +
-            LWS_SEND_BUFFER_POST_PADDING];
-    unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
-    int n;
-    n = sprintf((char *)p, "%d", 12);
-
-    n = libwebsocket_write(wsi,p, n, LWS_WRITE_TEXT);
-    if (n < 0) {
-        fprintf(stderr, "ERROR writing to socket");
-        return 1;
+    int i;
+    for(i = 0; i < pss->protocol_len; i++) {
+        json_array_append_new(retRoot, json_string(pss->protocols[i]));
     }
 
+    char *retData = json_dumps(retRoot,JSON_COMPACT);
+    if (retData != NULL) {
+
+        unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + sizeof (retData) + LWS_SEND_BUFFER_POST_PADDING];
+        unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
+
+        int n;
+        n = sprintf((char *) p, "%s", retData);
+        n = libwebsocket_write(wsi, p, n, LWS_WRITE_TEXT);
+        if (n < 0) {
+            fprintf(stderr, "ERROR writing to socket");
+        }
+        free(retData);
+    }
+
+    
+    json_decref(retRoot);
+    
+    return 0;
 }
 
 
