@@ -40,8 +40,10 @@ static int handle_client_data(struct libwebsocket_context *context,
                     break;
                 case COMMOTION_MSG_CLIENT_DISSCONNECTED:
                 case COMMOTION_MSG_FORWARD_MSG:
-                case COMMOTION_MSG_REQ_TOPOLOGY:
                     return 0;
+                case COMMOTION_MSG_REQ_TOPOLOGY:
+                    ret=msg_req_topology(context,wsi,user,root);
+                    break;
                 default:
                     fprintf(stderr, "error: Message type not valid\n");
             }
@@ -56,13 +58,11 @@ static int handle_client_data(struct libwebsocket_context *context,
 static int msg_client_connect(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, json_t *root) {
 
+    struct per_session_data__ws_client* pss = user;
+    
     fprintf(stdout, "log: Client connected\n");
 
     json_t *data, *protocols;
-      //d :  {
-      //  p : ["test-app","app2"]
-      //}
-
     data = json_object_get(root,CWS_FIELD_MSG_DATA);
     if(!json_is_object(data))
     {
@@ -77,22 +77,57 @@ static int msg_client_connect(struct libwebsocket_context *context,
         return 0;
     }
 
-    int i=0;
+    int i = 0;
     for (i = 0; i < json_array_size(protocols); i++) {
-        
+
         json_t* proto = json_array_get(protocols, i);
         if (!json_is_string(proto)) {
             fprintf(stderr, "error:protocol not a string\n");
             continue;
         }
-        
+
         const char *proto_name = json_string_value(proto);
-        fprintf(stderr, "log:protocol '%s' added.\n",proto_name);
-        
+        fprintf(stderr, "log:protocol '%s' added.\n", proto_name);
+        if (strlen(proto_name) < MAX_PROTOCOl_NAME_SIZE) {
+            strcpy(pss->protocols[pss->protocol_len], proto_name);
+            pss->protocol_len++;
+        }
+
     }
-    
+
     return 0;
 }
+
+/**
+ * Handle request topology
+ * @param context
+ * @param wsi
+ * @param user
+ * @param root
+ * @return 
+ */
+static int msg_req_topology(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, json_t *root) {
+
+
+    unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 512 +
+            LWS_SEND_BUFFER_POST_PADDING];
+    unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
+    int n;
+    n = sprintf((char *)p, "%d", 12);
+
+    n = libwebsocket_write(wsi,p, n, LWS_WRITE_TEXT);
+    if (n < 0) {
+        fprintf(stderr, "ERROR writing to socket");
+        return 1;
+    }
+
+}
+
+
+
+
+
 
 int commotion_ws_callback(struct libwebsocket_context *context,
         struct libwebsocket *wsi,
@@ -106,8 +141,8 @@ int commotion_ws_callback(struct libwebsocket_context *context,
     switch (reason) {
 
         case LWS_CALLBACK_ESTABLISHED:
-            pss->_protocols_head=NULL;
             fprintf(stderr, "callback_dumb_increment: LWS_CALLBACK_ESTABLISHED\n");
+            pss->protocol_len=0;
             break;
 
             /*

@@ -76,6 +76,8 @@
             // Now announce client appliaction protocols to server.
             _this._send_formated_msg(MSG_TYPES.REGISTER_CLIENT,"0.0.0.0",{"p" : protocols});
         
+            _this._send_formated_msg(MSG_TYPES.REQUEST_TOPOLOGY);
+        
             // If connect callback was given callback.
             if(typeof opencb == "function") opencb(ret);
             
@@ -83,6 +85,7 @@
         
         // Handle all websocket data
         this.ws.onmessage = function(data){
+            alert(data)
             console.log("Data Recieved:" + data);
         };
         

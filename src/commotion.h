@@ -26,7 +26,9 @@ extern "C" {
 #define CWS_FIELD_MSG_TYPE "mt"
 #define CWS_FIELD_MSG_DATA "d"
 #define MSG_REGISTER_FIELD_PROTOCOLS "p"
-
+    
+#define MAX_NUMBER_OF_PROTOCOLS 10
+#define MAX_PROTOCOl_NAME_SIZE 50
     
     enum commotion_msg_type {
         COMMOTION_MSG_CLIENT_REGISTERED,
@@ -39,14 +41,6 @@ extern "C" {
     // Return 0 on success, all else is not valid.
     inline int is_valid_msg_type(int t);
     
-    
-    struct protocol_list_el {
-        int name;
-        struct protocol_list_el* next;
-    };
-
-    typedef struct protocol_list_el protocol_item;
-    
     /*
      * one of these is auto-created for each connection and a pointer to the
      * appropriate instance is passed to the callback in the user parameter
@@ -55,8 +49,8 @@ extern "C" {
      * connection.
      */
     struct per_session_data__ws_client {
-        protocol_item* protocols;
-        protocol_item* _protocols_head;
+        char protocols[MAX_NUMBER_OF_PROTOCOLS][MAX_PROTOCOl_NAME_SIZE];
+        int protocol_len;
     };
 
     
@@ -109,10 +103,19 @@ extern "C" {
     static int msg_client_connect(struct libwebsocket_context *context,
             struct libwebsocket *wsi, void *user, json_t *root);
 
-    
-    
-    // static void add_protocol_to_client(void* user,const char* str);
 
+    /**
+     * Handle client_connect
+     * @param context
+     * @param wsi
+     * @param user
+     * @param root
+     * @return 
+     */
+    static int msg_req_topology(struct libwebsocket_context *context,
+            struct libwebsocket *wsi, void *user, json_t *root);
+
+    
 #ifdef	__cplusplus
 }
 #endif
