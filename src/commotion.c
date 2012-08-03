@@ -1,26 +1,96 @@
 
 #include "commotion.h"
-#include <jansson.h>
+
+// Check if t is valid msg type
+// Return 0 on success, all else is not valid.
+inline int is_valid_msg_type(int t){
+    switch(t){
+        case COMMOTION_MSG_CLIENT_REGISTERED:
+        case COMMOTION_MSG_CLIENT_DISSCONNECTED:
+        case COMMOTION_MSG_FORWARD_MSG:
+        case COMMOTION_MSG_REQ_TOPOLOGY:
+            return 0;
+        default:
+            return -1;
+    }
+}
+
 
 static int handle_client_data(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, void *in, size_t len) {
 
-    struct per_session_data__ws_client *pss = user;
-
-    fprintf(stderr, "Client Data Recieved %d\n", (int) len);
-
+    int ret = 0;
     json_t *root;
     json_error_t error;
-    root = json_loads(in, 0, &error);
+    root = json_loadb(in, len, 0, &error);
     if (!root) {
         fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
     } else {
-        fprintf(stderr, "Client Data Accepted \n");
         json_t *mt = json_object_get(root, CWS_FIELD_MSG_TYPE);
-        if (!json_is_string(mt)) {
+        if (!json_is_integer(mt)) {
             fprintf(stderr, "error: Message type not found\n");
+        } else {
+            
+            //Get the message type
+            const int msg_type = json_integer_value(mt);
+            
+            switch (msg_type) {
+                case COMMOTION_MSG_CLIENT_REGISTERED:
+                    ret=msg_client_connect(context,wsi,user,root);
+                    break;
+                case COMMOTION_MSG_CLIENT_DISSCONNECTED:
+                case COMMOTION_MSG_FORWARD_MSG:
+                case COMMOTION_MSG_REQ_TOPOLOGY:
+                    return 0;
+                default:
+                    fprintf(stderr, "error: Message type not valid\n");
+            }
+            
         }
+        json_decref(root);
     }
+    return ret;
+}
+
+
+static int msg_client_connect(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, json_t *root) {
+
+    fprintf(stdout, "log: Client connected\n");
+
+    json_t *data, *protocols;
+      //d :  {
+      //  p : ["test-app","app2"]
+      //}
+
+    data = json_object_get(root,CWS_FIELD_MSG_DATA);
+    if(!json_is_object(data))
+    {
+        fprintf(stderr, "error: missing data arg or not object\n");
+        return 0;
+    }
+    
+    protocols = json_object_get(data,MSG_REGISTER_FIELD_PROTOCOLS);
+    if(!json_is_array(protocols))
+    {
+        fprintf(stderr, "error: missing protocols in message client connect\n");
+        return 0;
+    }
+
+    int i=0;
+    for (i = 0; i < json_array_size(protocols); i++) {
+        
+        json_t* proto = json_array_get(protocols, i);
+        if (!json_is_string(proto)) {
+            fprintf(stderr, "error:protocol not a string\n");
+            continue;
+        }
+        
+        const char *proto_name = json_string_value(proto);
+        fprintf(stderr, "log:protocol '%s' added.\n",proto_name);
+        
+    }
+    
     return 0;
 }
 
@@ -36,8 +106,8 @@ int commotion_ws_callback(struct libwebsocket_context *context,
     switch (reason) {
 
         case LWS_CALLBACK_ESTABLISHED:
+            pss->_protocols_head=NULL;
             fprintf(stderr, "callback_dumb_increment: LWS_CALLBACK_ESTABLISHED\n");
-            pss->number = 0;
             break;
 
             /*
@@ -47,7 +117,6 @@ int commotion_ws_callback(struct libwebsocket_context *context,
              */
 
         case LWS_CALLBACK_BROADCAST:
-            n = sprintf((char *) p, "%d", pss->number++);
             n = libwebsocket_write(wsi, p, n, LWS_WRITE_TEXT);
             if (n < 0) {
                 fprintf(stderr, "ERROR writing to socket");

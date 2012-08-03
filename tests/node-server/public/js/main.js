@@ -8,8 +8,20 @@ var connected = false;
 
 $(document).ready(function(){
     
+    var cws = new CommotionSocket(ws_server,["asd","chat-server"],function(){
+        $("#connected").removeClass("red");
+        $("#connected").addClass("green");
+    });
     
-    var cws = new CommotionSocket(ws_server,"chat-server");
+    cws.onclose(function(){
+         $("#connected").removeClass("green");
+        $("#connected").addClass("red");
+    });
+    
+    cws.on(["tset","asd"],function(){
+        
+    })
+    
     
 //    // Write your code in the same way as for native WebSocket:
 //    var ws = new WebSocket(ws_server,"commotion-ws");
