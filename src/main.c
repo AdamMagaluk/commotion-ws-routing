@@ -100,11 +100,29 @@ static struct option options[] = {
 	{ NULL, 0, 0, 0 }
 };
 
-
+#include "topology.h"
 #define LOCAL_RESOURCE_PATH  "commotion-ws/";
 
 int main(int argc, char **argv)
 {
+    init_access_points();
+/*
+    int i,j;
+    for( i=0;i<1;i++){
+        for( j=0;j<2;j++){
+        printf("Added:%d\n",ap_add_node(i+10,j+1));
+        }
+    }
+    
+*/
+    printf("Added:%d\n",ap_add_node(4,1));
+    printf("Added:%d\n",ap_add_node(1,2));
+    display_topology();
+    deref_access_points();
+    
+    
+    return 0;
+    
 	int n = 0;
 	const char *cert_path =
 			    LOCAL_RESOURCE_PATH"/libwebsockets-test-server.pem";

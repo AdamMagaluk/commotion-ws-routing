@@ -6,6 +6,8 @@ AM_LDFLAGS =
 ACLOCAL_AMFLAGS = -I m4 
 
 bin_PROGRAMS = wsroutingserver
-wsroutingserver_SOURCES = main.c commotion.c
+wsroutingserver_SOURCES = main.c \
+		          commotion.c \
+			  topology.c
  
 
