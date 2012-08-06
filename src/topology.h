@@ -17,6 +17,10 @@
 extern "C" {
 #endif
 
+#define FIELD_ROOT_APS "aps"
+#define FIELD_ADDR "addr"
+#define FIELD_CLIENTS "clients"
+    
     typedef uint32_t Address;
     
     json_t* ap_root;
@@ -27,10 +31,13 @@ extern "C" {
     
     int ap_remove_node(const Address ap,const Address node);
     
-    int ap_exists();
+    int ap_exists(const Address ap_addr);
+    
+    
+    int remove_ap(const Address ap_addr);
+    int add_ap(const Address ap_addr);
     
     void display_topology();
-    
     
     void deref_access_points();
     

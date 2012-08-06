@@ -5,9 +5,15 @@ AM_CPPFLAGS = -I $(top_srcdir)/src/ -DBUILD_DATE=\"`date '+%Y%m%d-%H:%M'`\" -DHG
 AM_LDFLAGS = 
 ACLOCAL_AMFLAGS = -I m4 
 
+lib_LTLIBRARIES = libcommotionws.la
+libcommotionws_la_SOURCES = commotion.c \
+                            topology.c
+
 bin_PROGRAMS = wsroutingserver
-wsroutingserver_SOURCES = main.c \
-		          commotion.c \
-			  topology.c
- 
+wsroutingserver_SOURCES = main.c
+wsroutingserver_LDFLAGS = -lcommotionws
+
+bin_PROGRAMS = test_topology
+test_topology_SOURCES = test-topology.c
+test_topology_LDFLAGS = -lcommotionws 
 
