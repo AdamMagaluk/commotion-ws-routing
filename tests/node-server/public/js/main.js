@@ -18,6 +18,9 @@ $(document).ready(function(){
         $("#connected").addClass("red");
     });
     
+    cws.ontopologychange(function(msg){
+        console.log(msg);
+    });
     cws.on(["tset","asd"],function(){
         
     })

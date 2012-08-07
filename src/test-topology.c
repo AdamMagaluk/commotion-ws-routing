@@ -11,10 +11,21 @@
 
 #include "topology.h"
 
+void test(char* a, char* b){
+    printf("A:%s B:%s\n",a,b);
+}
+
 /*
  * 
  */
 int main(int argc, char** argv) {
+    char a[128]="adasd";
+    char b[128]="asdasd";
+    
+    test(a,b);
+    
+    return 0;
+    
     init_access_points();
     const int maxx=3;
     const int maxy=5;

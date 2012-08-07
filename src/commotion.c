@@ -6,8 +6,9 @@
 
 // Check if t is valid msg type
 // Return 0 on success, all else is not valid.
-inline int is_valid_msg_type(int t){
-    switch(t){
+
+inline int is_valid_msg_type(int t) {
+    switch (t) {
         case COMMOTION_MSG_CLIENT_REGISTERED:
         case COMMOTION_MSG_CLIENT_DISSCONNECTED:
         case COMMOTION_MSG_FORWARD_MSG:
@@ -17,7 +18,6 @@ inline int is_valid_msg_type(int t){
             return -1;
     }
 }
-
 
 static int handle_client_data(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, void *in, size_t len) {
@@ -33,65 +33,64 @@ static int handle_client_data(struct libwebsocket_context *context,
         if (!json_is_integer(mt)) {
             fprintf(stderr, "error: Message type not found\n");
         } else {
-            
+
             //Get the message type
             const int msg_type = json_integer_value(mt);
-            
+
             switch (msg_type) {
                 case COMMOTION_MSG_CLIENT_REGISTERED:
-                    ret=msg_client_connect(context,wsi,user,root);
+                    ret = msg_client_connect(context, wsi, user, root);
                     break;
                 case COMMOTION_MSG_CLIENT_DISSCONNECTED:
                 case COMMOTION_MSG_FORWARD_MSG:
                     return 0;
                 case COMMOTION_MSG_REQ_TOPOLOGY:
-                    ret=msg_req_topology(context,wsi,user,root);
+                    ret = msg_req_topology(context, wsi, user, root);
                     break;
                 default:
                     fprintf(stderr, "error: Message type not valid\n");
             }
-            
+
         }
         json_decref(root);
     }
     return ret;
 }
 
-
 static int msg_client_connect(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, json_t *root) {
-    
+
     struct per_session_data__ws_client* pss = user;
-    
+
     fprintf(stdout, "log: Client connected\n");
 
     json_t *data, *protocols;
-    data = json_object_get(root,CWS_FIELD_MSG_DATA);
-    if(!json_is_object(data))
-    {
+    data = json_object_get(root, CWS_FIELD_MSG_DATA);
+    if (!json_is_object(data)) {
         fprintf(stderr, "error: missing data arg or not object\n");
         return 0;
     }
-    
-    protocols = json_object_get(data,MSG_REGISTER_FIELD_PROTOCOLS);
-    if(!json_is_array(protocols))
-    {
+
+    protocols = json_object_get(data, MSG_REGISTER_FIELD_PROTOCOLS);
+    if (!json_is_array(protocols)) {
         fprintf(stderr, "error: missing protocols in message client connect\n");
         return 0;
     }
-     int added = ap_node_protocols(LOCAL_HOST_ADDR,pss->addr, protocols);
+    int added = ap_node_protocols(LOCAL_HOST_ADDR, pss->addr, protocols);
 
     return 0;
 }
+
 static int msg_client_disconnect(struct libwebsocket_context *context,
-            struct libwebsocket *wsi, void *user){
-    
-     struct per_session_data__ws_client* pss = user;
-    
-    fprintf(stdout, "log: Client %s disconnected\n",pss->client_name);
-    
-    ap_remove_node(LOCAL_HOST_ADDR,pss->addr);
+        struct libwebsocket *wsi, void *user) {
+
+    struct per_session_data__ws_client* pss = user;
+
+    fprintf(stdout, "log: Client %s disconnected\n", pss->client_name);
+
+    ap_remove_node(LOCAL_HOST_ADDR, pss->addr);
 }
+
 /**
  * Handle request topology
  * @param context
@@ -105,8 +104,10 @@ static int msg_req_topology(struct libwebsocket_context *context,
 
     struct per_session_data__ws_client* pss = user;
     
-    char* retData = ap_dump_topology();
     
+    json_t* msg = make_msg(COMMOTION_MSG_TOPOLOGY_UPDATE,"127.0.0.1",pss->client_ip,ap_root_topology());
+    
+    char* retData = json_dumps(msg, JSON_COMPACT);
     if (retData != NULL) {
 
         unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + sizeof (retData) + LWS_SEND_BUFFER_POST_PADDING];
@@ -119,17 +120,14 @@ static int msg_req_topology(struct libwebsocket_context *context,
             fprintf(stderr, "ERROR writing to socket\n");
         }
         free(retData);
-    }else{
+    } else {
         fprintf(stderr, "ERROR failed to dump json data\n");
     }
     
+    json_decref(msg);
+
     return 0;
 }
-
-
-
-
-
 
 int commotion_ws_callback(struct libwebsocket_context *context,
         struct libwebsocket *wsi,
@@ -144,15 +142,13 @@ int commotion_ws_callback(struct libwebsocket_context *context,
 
         case LWS_CALLBACK_ESTABLISHED:
             fprintf(stderr, "callback_dumb_increment: LWS_CALLBACK_ESTABLISHED\n");
-            char client_ip[128];
-       
             libwebsockets_get_peer_addresses(libwebsocket_get_socket_fd(wsi), pss->client_name,
-                    sizeof (pss->client_name), client_ip, sizeof (client_ip));
+                    sizeof (pss->client_name), pss->client_ip, sizeof (pss->client_ip));
 
             struct sockaddr_in antelope;
-            inet_aton(client_ip, &antelope.sin_addr);
+            inet_aton(pss->client_ip, &antelope.sin_addr);
             pss->addr = htonl(antelope.sin_addr.s_addr);
-        break;
+            break;
 
             /*
              * in this protocol, we just use the broadcast action as the chance to
@@ -227,4 +223,20 @@ commotion_handshake_info(struct lws_tokens *lwst) {
 
         fprintf(stderr, "    %s = %s\n", token_names[n], lwst[n].token);
     }
+}
+
+static json_t* make_msg(int mt,  char* src,  char* dst, json_t* mdata) {
+    json_t* msg = json_object();
+    json_object_set_new(msg, CWS_FIELD_MSG_TYPE, json_integer(mt));
+
+    if (src != NULL)
+        json_object_set(msg, CWS_FIELD_SRC, json_string(src));
+    if (dst != NULL)
+        json_object_set(msg, CWS_FIELD_DST, json_string(dst));
+
+
+    if (mdata != NULL)
+        json_object_set(msg, CWS_FIELD_MSG_DATA, mdata);
+    
+    return msg;
 }

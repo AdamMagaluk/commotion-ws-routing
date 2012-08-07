@@ -13,6 +13,9 @@ void deref_access_points() {
 char* ap_dump_topology(){
     return json_dumps(ap_root,JSON_COMPACT);
 }
+json_t* ap_root_topology(){
+    return ap_root;
+}
 
 void display_topology() {
     

@@ -33,6 +33,8 @@ extern "C" {
     
     char* ap_dump_topology();
     
+    json_t* ap_root_topology();
+    
     extern int ap_add_node(const Address ap,const Address node,const char* hostname);
     
     extern int ap_node_protocols(const Address ap_addr,const Address node_node,json_t* protocols);

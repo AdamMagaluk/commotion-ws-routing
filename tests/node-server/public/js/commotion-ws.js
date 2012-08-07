@@ -21,6 +21,7 @@
       1 : Client dissconnect
       2 : Foward Message
       3 : Request Topology
+      4 : Topology Update
       
       Register Client
       - Cleint sends this message when socket opens. Sends a list of applications
@@ -59,8 +60,12 @@
             REGISTER_CLIENT : 0,
             CLIENT_DISCONNECT : 1,
             FORWARD_MSG : 2,
-            REQUEST_TOPOLOGY : 3
+            REQUEST_TOPOLOGY : 3,
+            TOPOLOGY_UPDATE : 4
         };
+        
+        this.topologychangecb=function(){}
+        
         
         //Callback map to handle all messages for applications.
         this.callbackmap = {};
@@ -88,8 +93,16 @@
         // Handle all websocket data
         this.ws.onmessage = function(e){
             var json =  eval('(' + e.data + ')');
-            console.log(json);
+            if(json.mt == null || typeof json.mt == undefined){
+                console.warn("ws.onmessage - Missing message type.");
+                return;
+            }
+            switch(json.mt){
+                case MSG_TYPES.TOPOLOGY_UPDATE: return _this.topologychangecb(json);
+            }
             
+//            if(typeof _this.callbackmap[json.mt] == "function" )
+//                _this.callbackmap.json.mt(json);
         };
         
         this._send_formated_msg = function(mt,dst,data){
@@ -118,6 +131,10 @@
     
     CommotionSocket.prototype.onclose = function(cb){
         this.ws.onclose = cb;
+    }
+    
+    CommotionSocket.prototype.ontopologychange = function(cb){
+        this.topologychangecb = cb;
     }
     
     

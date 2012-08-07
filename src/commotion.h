@@ -27,6 +27,8 @@ extern "C" {
 #define COMMOTION_PROTOCOL_NAME "commotion-ws"
 #define CWS_FIELD_MSG_TYPE "mt"
 #define CWS_FIELD_MSG_DATA "d"
+#define CWS_FIELD_SRC "src"
+#define CWS_FIELD_DST "dst"
 #define MSG_REGISTER_FIELD_PROTOCOLS "p"
     
 #define MAX_NUMBER_OF_PROTOCOLS 10
@@ -36,7 +38,8 @@ extern "C" {
         COMMOTION_MSG_CLIENT_REGISTERED,
         COMMOTION_MSG_CLIENT_DISSCONNECTED,
         COMMOTION_MSG_FORWARD_MSG,
-        COMMOTION_MSG_REQ_TOPOLOGY
+        COMMOTION_MSG_REQ_TOPOLOGY,
+        COMMOTION_MSG_TOPOLOGY_UPDATE
     };
 
     // Check if t is valid msg type
@@ -52,6 +55,7 @@ extern "C" {
      */
     struct per_session_data__ws_client {
         char client_name[128];
+        char client_ip[128];
         uint32_t addr;
     };
     
@@ -118,6 +122,8 @@ extern "C" {
     static int msg_req_topology(struct libwebsocket_context *context,
             struct libwebsocket *wsi, void *user, json_t *root);
 
+
+    static json_t* make_msg(int mt, char* src, char* dst,json_t* mdata);
     
 #ifdef	__cplusplus
 }
