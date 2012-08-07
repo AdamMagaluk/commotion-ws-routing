@@ -1,0 +1,15 @@
+Todo List 
+
+
+Topology Management
+ - Support multiple connections from the same host, using some identifier.
+ - Support changes in topology, broadcast new topo to clients on change and 1/2 hop neighbors
+ - support polling 1 and 2 hop neighbors from olsrd json info and request their topology and add it to local list.
+
+Base Protocol
+ - basic message passing
+
+Javascript Library
+ - handle topology change messages
+
+
