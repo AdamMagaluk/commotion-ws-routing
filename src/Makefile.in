@@ -52,7 +52,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = test_topology$(EXEEXT)
+bin_PROGRAMS = wsroutingserver$(EXEEXT) test_topology$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -104,6 +104,12 @@ test_topology_LDADD = $(LDADD)
 test_topology_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(test_topology_LDFLAGS) $(LDFLAGS) -o $@
+am_wsroutingserver_OBJECTS = main.$(OBJEXT)
+wsroutingserver_OBJECTS = $(am_wsroutingserver_OBJECTS)
+wsroutingserver_LDADD = $(LDADD)
+wsroutingserver_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(wsroutingserver_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -117,8 +123,10 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libcommotionws_la_SOURCES) $(test_topology_SOURCES)
-DIST_SOURCES = $(libcommotionws_la_SOURCES) $(test_topology_SOURCES)
+SOURCES = $(libcommotionws_la_SOURCES) $(test_topology_SOURCES) \
+	$(wsroutingserver_SOURCES)
+DIST_SOURCES = $(libcommotionws_la_SOURCES) $(test_topology_SOURCES) \
+	$(wsroutingserver_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -376,6 +384,9 @@ clean-binPROGRAMS:
 test_topology$(EXEEXT): $(test_topology_OBJECTS) $(test_topology_DEPENDENCIES) $(EXTRA_test_topology_DEPENDENCIES) 
 	@rm -f test_topology$(EXEEXT)
 	$(test_topology_LINK) $(test_topology_OBJECTS) $(test_topology_LDADD) $(LIBS)
+wsroutingserver$(EXEEXT): $(wsroutingserver_OBJECTS) $(wsroutingserver_DEPENDENCIES) $(EXTRA_wsroutingserver_DEPENDENCIES) 
+	@rm -f wsroutingserver$(EXEEXT)
+	$(wsroutingserver_LINK) $(wsroutingserver_OBJECTS) $(wsroutingserver_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -384,6 +395,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/commotion.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-topology.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/topology.Plo@am__quote@
 

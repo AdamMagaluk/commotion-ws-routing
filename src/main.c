@@ -26,7 +26,13 @@
 #include <string.h>
 #include <sys/time.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include "commotion.h"
+
+#define LOCAL_HOST_ADDR 0x7F000001
 
 enum demo_protocols {
 	/* always first */
@@ -42,8 +48,7 @@ enum demo_protocols {
 /* this protocol server (always the first one) just knows how to do HTTP */
 static int callback_http(struct libwebsocket_context *context,
 		struct libwebsocket *wsi,
-		enum libwebsocket_callback_reasons reason, void *user,
-							   void *in, size_t len)
+		enum libwebsocket_callback_reasons reason, void *user, void *in, size_t len)
 {
 	char client_name[128];
 	char client_ip[128];
@@ -55,9 +60,13 @@ static int callback_http(struct libwebsocket_context *context,
 		libwebsockets_get_peer_addresses((int)(long)user, client_name,
 			     sizeof(client_name), client_ip, sizeof(client_ip));
 
-		fprintf(stderr, "Received network connect from %s (%s)\n",
-							client_name, client_ip);
+            fprintf(stderr, "Received network connect from %s (%s)\n", client_name, client_ip);
 
+            struct sockaddr_in antelope;
+            inet_aton(client_ip, &antelope.sin_addr);
+            
+            int ret = ap_add_node(LOCAL_HOST_ADDR,htonl(antelope.sin_addr.s_addr),client_name);
+            display_topology();
 		/* if we returned non-zero from here, we kill the connection */
 		break;
 	default:
@@ -105,8 +114,11 @@ static struct option options[] = {
 
 int main(int argc, char **argv)
 {
-
-	int n = 0;
+    
+    init_access_points();
+    
+ 
+            int n = 0;
 	const char *cert_path =
 			    LOCAL_RESOURCE_PATH"/libwebsockets-test-server.pem";
 	const char *key_path =
@@ -177,7 +189,7 @@ int main(int argc, char **argv)
 	 * This forks the websocket service action into a subprocess so we
 	 * don't have to take care about it.
 	 */
-
+ 
 	n = libwebsockets_fork_service_loop(context);
 	if (n < 0) {
 		fprintf(stderr, "Unable to fork service loop %d\n", n);
@@ -185,12 +197,13 @@ int main(int argc, char **argv)
 	}
 
 	while (1) {
-
 		sleep(10);
 		//libwebsockets_broadcast(&protocols[PROTOCOL_COMMOTION_WS],&buf[LWS_SEND_BUFFER_PRE_PADDING], 1);
 	}
 
 	libwebsocket_context_destroy(context);
 
+        deref_access_points();
+        
 	return 0;
 }

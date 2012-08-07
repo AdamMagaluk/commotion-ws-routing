@@ -1,4 +1,4 @@
-var ws_server = "ws://localhost:7681";
+var ws_server = "ws://10.0.0.135:7681";
 
 var topology = {
     '10.1.1.1' : {}

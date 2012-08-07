@@ -18,6 +18,8 @@
 #include <libwebsockets.h>
 #include <jansson.h>
 
+#include "topology.h"
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
@@ -49,10 +51,9 @@ extern "C" {
      * connection.
      */
     struct per_session_data__ws_client {
-        char protocols[MAX_NUMBER_OF_PROTOCOLS][MAX_PROTOCOl_NAME_SIZE];
-        int protocol_len;
+        char client_name[128];
+        uint32_t addr;
     };
-
     
     /**
      * Main Callback for commotion and libwebsockets
@@ -102,7 +103,9 @@ extern "C" {
      */
     static int msg_client_connect(struct libwebsocket_context *context,
             struct libwebsocket *wsi, void *user, json_t *root);
-
+    
+    static int msg_client_disconnect(struct libwebsocket_context *context,
+            struct libwebsocket *wsi, void *user);
 
     /**
      * Handle client_connect

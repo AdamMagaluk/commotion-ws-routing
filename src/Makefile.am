@@ -9,11 +9,10 @@ lib_LTLIBRARIES = libcommotionws.la
 libcommotionws_la_SOURCES = commotion.c \
                             topology.c
 
-bin_PROGRAMS = wsroutingserver
+bin_PROGRAMS = wsroutingserver test_topology
 wsroutingserver_SOURCES = main.c
 wsroutingserver_LDFLAGS = -lcommotionws
 
-bin_PROGRAMS = test_topology
 test_topology_SOURCES = test-topology.c
 test_topology_LDFLAGS = -lcommotionws 
 

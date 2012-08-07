@@ -1,5 +1,8 @@
 
+#include <netinet/in.h>
+
 #include "commotion.h"
+#define LOCAL_HOST_ADDR 0x7F000001
 
 // Check if t is valid msg type
 // Return 0 on success, all else is not valid.
@@ -57,7 +60,7 @@ static int handle_client_data(struct libwebsocket_context *context,
 
 static int msg_client_connect(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, json_t *root) {
-
+    
     struct per_session_data__ws_client* pss = user;
     
     fprintf(stdout, "log: Client connected\n");
@@ -76,28 +79,19 @@ static int msg_client_connect(struct libwebsocket_context *context,
         fprintf(stderr, "error: missing protocols in message client connect\n");
         return 0;
     }
-
-    int i = 0;
-    for (i = 0; i < json_array_size(protocols); i++) {
-
-        json_t* proto = json_array_get(protocols, i);
-        if (!json_is_string(proto)) {
-            fprintf(stderr, "error:protocol not a string\n");
-            continue;
-        }
-
-        const char *proto_name = json_string_value(proto);
-        fprintf(stderr, "log:protocol '%s' added.\n", proto_name);
-        if (strlen(proto_name) < MAX_PROTOCOl_NAME_SIZE) {
-            strcpy(pss->protocols[pss->protocol_len], proto_name);
-            pss->protocol_len++;
-        }
-
-    }
+     int added = ap_node_protocols(LOCAL_HOST_ADDR,pss->addr, protocols);
 
     return 0;
 }
-
+static int msg_client_disconnect(struct libwebsocket_context *context,
+            struct libwebsocket *wsi, void *user){
+    
+     struct per_session_data__ws_client* pss = user;
+    
+    fprintf(stdout, "log: Client %s disconnected\n",pss->client_name);
+    
+    ap_remove_node(LOCAL_HOST_ADDR,pss->addr);
+}
 /**
  * Handle request topology
  * @param context
@@ -111,14 +105,8 @@ static int msg_req_topology(struct libwebsocket_context *context,
 
     struct per_session_data__ws_client* pss = user;
     
-    json_t* retRoot = json_array();
-
-    int i;
-    for(i = 0; i < pss->protocol_len; i++) {
-        json_array_append_new(retRoot, json_string(pss->protocols[i]));
-    }
-
-    char *retData = json_dumps(retRoot,JSON_COMPACT);
+    char* retData = ap_dump_topology();
+    
     if (retData != NULL) {
 
         unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + sizeof (retData) + LWS_SEND_BUFFER_POST_PADDING];
@@ -128,13 +116,12 @@ static int msg_req_topology(struct libwebsocket_context *context,
         n = sprintf((char *) p, "%s", retData);
         n = libwebsocket_write(wsi, p, n, LWS_WRITE_TEXT);
         if (n < 0) {
-            fprintf(stderr, "ERROR writing to socket");
+            fprintf(stderr, "ERROR writing to socket\n");
         }
         free(retData);
+    }else{
+        fprintf(stderr, "ERROR failed to dump json data\n");
     }
-
-    
-    json_decref(retRoot);
     
     return 0;
 }
@@ -157,8 +144,15 @@ int commotion_ws_callback(struct libwebsocket_context *context,
 
         case LWS_CALLBACK_ESTABLISHED:
             fprintf(stderr, "callback_dumb_increment: LWS_CALLBACK_ESTABLISHED\n");
-            pss->protocol_len=0;
-            break;
+            char client_ip[128];
+       
+            libwebsockets_get_peer_addresses(libwebsocket_get_socket_fd(wsi), pss->client_name,
+                    sizeof (pss->client_name), client_ip, sizeof (client_ip));
+
+            struct sockaddr_in antelope;
+            inet_aton(client_ip, &antelope.sin_addr);
+            pss->addr = htonl(antelope.sin_addr.s_addr);
+        break;
 
             /*
              * in this protocol, we just use the broadcast action as the chance to
@@ -181,7 +175,9 @@ int commotion_ws_callback(struct libwebsocket_context *context,
             commotion_handshake_info((struct lws_tokens *) (long) user);
             /* you could return non-zero here and kill the connection */
             break;
-
+        case LWS_CALLBACK_CLOSED:
+            msg_client_disconnect(context, wsi, user);
+            break;
         default:
             break;
     }
