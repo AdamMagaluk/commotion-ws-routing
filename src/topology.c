@@ -59,7 +59,7 @@ void display_topology() {
 
 }
 
-int ap_node_protocols(const Address ap_addr,const Address node_addr,json_t* protocols){
+int ap_node_protocols(struct Address ap_addr,struct Address node_addr,json_t* protocols){
     int apidx = ap_exists(ap_addr);
     if(apidx <0){
         return -1;
@@ -112,7 +112,7 @@ int ap_node_protocols(const Address ap_addr,const Address node_addr,json_t* prot
     return added;
 }
 
-int remove_ap(const Address ap_addr) {
+int remove_ap(struct Address ap_addr) {
     int idx = ap_exists(ap_addr);
     if (idx < 0) return 0;
 
@@ -120,7 +120,7 @@ int remove_ap(const Address ap_addr) {
     return json_array_remove(aps, idx);
 }
 
-int add_ap(const Address ap_addr) {
+int add_ap(struct Address ap_addr) {
     int idx = ap_exists(ap_addr);
     if (idx >= 0) {
         return idx;
@@ -132,9 +132,9 @@ int add_ap(const Address ap_addr) {
     }
     json_t *ap = json_object();
     if (ap == NULL) return -2;
-    json_t* addr = json_integer(ap_addr);
+    json_t* addr = json_integer(ap_addr.addr);
     if (addr == NULL) return -3;
-    json_t* addrt = json_string(addr_to_string(ap_addr));
+    json_t* addrt = json_string(addr_to_string(ap_addr.addr));
     if (addrt == NULL) return -4;
     json_object_set_new(ap,FIELD_ADDR, addr);
     json_object_set_new(ap,FIELD_ADDR_TEXT, addrt);
@@ -145,7 +145,7 @@ int add_ap(const Address ap_addr) {
     return ap_exists(ap_addr);
 }
 
-int ap_exists(const Address ap_addr) {
+int ap_exists(struct Address ap_addr) {
     json_t *aps = json_object_get(ap_root,FIELD_ROOT_APS);
     if (!json_is_array(aps)) {
         aps = json_array();
@@ -158,7 +158,7 @@ int ap_exists(const Address ap_addr) {
         if (json_is_object(ap)) {
             json_t *addr = json_object_get(ap,FIELD_ADDR);
             if (json_is_integer(addr)) {
-                if (json_integer_value(addr) == ap_addr) {
+                if (json_integer_value(addr) == ap_addr.addr) {
                     return i;
                 }
             }
@@ -167,7 +167,7 @@ int ap_exists(const Address ap_addr) {
     return -1;
 }
 
-int ap_add_node(const Address ap_addr, const Address node,const char* hostname) {
+int ap_add_node(struct Address ap_addr, struct Address node,const char* hostname) {
     int idx = add_ap(ap_addr);
     if (idx < 0) return -1;
 
@@ -181,15 +181,18 @@ int ap_add_node(const Address ap_addr, const Address node,const char* hostname) 
         }
         json_t *client = json_object();
         if (client == NULL) return -2;
-        json_t* addr = json_integer(node);
+        json_t* addr = json_integer(node.addr);
         if (addr == NULL) return -3;
         json_t* host = json_string(hostname);
         if (addr == NULL) return -4;
-        json_t* addrt = json_string(addr_to_string(node));
+        json_t* addrt = json_string(addr_to_string(node.addr));
         if (addrt == NULL) return -5;
+        json_t* idd = json_integer(node.id);
+        if (idd == NULL) return -6;
         json_object_set_new(client,FIELD_ADDR, addr);
         json_object_set_new(client,FIELD_HOSTNAME, host);
         json_object_set_new(client,FIELD_ADDR_TEXT, addrt);
+        json_object_set_new(client,FIELD_ID, idd);
         if (json_array_append_new(clients, client) != 0) {
             return -4;
         }
@@ -199,7 +202,7 @@ int ap_add_node(const Address ap_addr, const Address node,const char* hostname) 
     return idx;
 }
 
-int ap_node_exists(const Address ap_addr, const Address node_addr) {
+int ap_node_exists(struct Address ap_addr, struct Address node_addr) {
     int idx = ap_exists(ap_addr);
     if (idx < 0) return -1;
 
@@ -214,8 +217,9 @@ int ap_node_exists(const Address ap_addr, const Address node_addr) {
                 json_t* node = json_array_get(clients, i);
                 if (json_is_object(node)) {
                     json_t *addr = json_object_get(node, FIELD_ADDR);
+                    json_t *ID = json_object_get(node, FIELD_ID);
                     if (json_is_integer(addr)) {
-                        if (json_integer_value(addr) == node_addr) {
+                        if (json_integer_value(addr) == node_addr.addr && json_integer_value(ID) == node_addr.id) {
                             return i;
                         }
                     }
@@ -227,7 +231,7 @@ int ap_node_exists(const Address ap_addr, const Address node_addr) {
     
 }
 
-int ap_remove_node(const Address ap_addr, const Address node_addr) {
+int ap_remove_node(struct Address ap_addr, struct Address node_addr) {
     int idx = ap_exists(ap_addr);
     if (idx < 0) return 0;
     
@@ -243,7 +247,7 @@ int ap_remove_node(const Address ap_addr, const Address node_addr) {
     return -1;
 }
 
-const char* addr_to_string(const Address ap) {
+const char* addr_to_string(uint32_t ap) {
     
      const int b1=((ap >> (3 * 8)) & 0xff);
      const int b2=((ap >> (2 * 8)) & 0xff);

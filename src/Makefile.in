@@ -95,7 +95,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libcommotionws_la_LIBADD =
-am_libcommotionws_la_OBJECTS = commotion.lo topology.lo
+am_libcommotionws_la_OBJECTS = topology.lo commotion.lo
 libcommotionws_la_OBJECTS = $(am_libcommotionws_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_test_topology_OBJECTS = test-topology.$(OBJEXT)
@@ -254,15 +254,13 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = subdir-objects gnu
-AM_CFLAGS = -Wall -g
+AM_CFLAGS = -I.
 DATE = `date -R`
 AM_CPPFLAGS = -I $(top_srcdir)/src/ -DBUILD_DATE=\"`date '+%Y%m%d-%H:%M'`\" -DHG_VERSION=\"`hg id | sed 's/ /_/g'`\"
 AM_LDFLAGS = 
 ACLOCAL_AMFLAGS = -I m4 
 lib_LTLIBRARIES = libcommotionws.la
-libcommotionws_la_SOURCES = commotion.c \
-                            topology.c
-
+libcommotionws_la_SOURCES = topology.c commotion.c
 wsroutingserver_SOURCES = main.c
 wsroutingserver_LDFLAGS = -lcommotionws
 test_topology_SOURCES = test-topology.c

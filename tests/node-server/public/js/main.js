@@ -1,4 +1,4 @@
-var ws_server = "ws://10.0.0.135:7681";
+var ws_server = "ws://localhost:7681";
 
 var topology = {
     '10.1.1.1' : {}
@@ -14,16 +14,23 @@ $(document).ready(function(){
     });
     
     cws.onclose(function(){
-         $("#connected").removeClass("green");
+        $("#connected").removeClass("green");
         $("#connected").addClass("red");
     });
     
     cws.ontopologychange(function(msg){
-        console.log(msg);
+       $("#clients").html("");
+       cws.forclients(function(client){
+        $("#clients").append('<input type="radio" name="group1" value="Milk">'+client.addrt + " - " + client.id + '<br>');
+       });
     });
+    
+    
+    
+    
     cws.on(["tset","asd"],function(){
         
-    })
+        })
     
     
 //    // Write your code in the same way as for native WebSocket:

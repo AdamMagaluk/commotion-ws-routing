@@ -21,7 +21,9 @@ inline int is_valid_msg_type(int t) {
 
 static int handle_client_data(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, void *in, size_t len) {
-
+    
+    printf("handle_client_data 1\n");
+    
     int ret = 0;
     json_t *root;
     json_error_t error;
@@ -54,6 +56,9 @@ static int handle_client_data(struct libwebsocket_context *context,
         }
         json_decref(root);
     }
+    
+    printf("handle_client_data END\n");
+    
     return ret;
 }
 
@@ -62,7 +67,7 @@ static int msg_client_connect(struct libwebsocket_context *context,
 
     struct per_session_data__ws_client* pss = user;
 
-    fprintf(stdout, "log: Client connected\n");
+    fprintf(stdout, "log: Client connected %d\n",libwebsocket_get_socket_fd(wsi) );
 
     json_t *data, *protocols;
     data = json_object_get(root, CWS_FIELD_MSG_DATA);
@@ -76,19 +81,22 @@ static int msg_client_connect(struct libwebsocket_context *context,
         fprintf(stderr, "error: missing protocols in message client connect\n");
         return 0;
     }
-    int added = ap_node_protocols(LOCAL_HOST_ADDR, pss->addr, protocols);
-
+    ap_node_protocols(getLocalAddress(), pss->addr, protocols);
     return 0;
 }
 
-static int msg_client_disconnect(struct libwebsocket_context *context,
+int msg_client_disconnect(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user) {
 
     struct per_session_data__ws_client* pss = user;
+    fprintf(stdout, "log: Client %s disconnected %d\n", pss->client_name,pss->addr.id);
+    ap_remove_node(getLocalAddress(), pss->addr);
 
-    fprintf(stdout, "log: Client %s disconnected\n", pss->client_name);
-
-    ap_remove_node(LOCAL_HOST_ADDR, pss->addr);
+    unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 10 + LWS_SEND_BUFFER_POST_PADDING];
+    unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
+    sprintf((char *) p, "0987654321");
+    //libwebsockets_broadcast(&protocols[PROTOCOL_COMMOTION_WS], p, 10);
+    commotion_broadcast(&protocols[PROTOCOL_COMMOTION_WS], context, p, 10);
 }
 
 /**
@@ -133,43 +141,43 @@ int commotion_ws_callback(struct libwebsocket_context *context,
         struct libwebsocket *wsi,
         enum libwebsocket_callback_reasons reason,
         void *user, void *in, size_t len) {
+    
     int n;
     unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 512 + LWS_SEND_BUFFER_POST_PADDING];
     unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
     struct per_session_data__ws_client *pss = user;
 
+    int socket=libwebsocket_get_socket_fd(wsi);
     switch (reason) {
 
         case LWS_CALLBACK_ESTABLISHED:
-            fprintf(stderr, "callback_dumb_increment: LWS_CALLBACK_ESTABLISHED\n");
-            libwebsockets_get_peer_addresses(libwebsocket_get_socket_fd(wsi), pss->client_name,
+            
+            libwebsockets_get_peer_addresses(socket, pss->client_name,
                     sizeof (pss->client_name), pss->client_ip, sizeof (pss->client_ip));
 
             struct sockaddr_in antelope;
             inet_aton(pss->client_ip, &antelope.sin_addr);
-            pss->addr = htonl(antelope.sin_addr.s_addr);
-            break;
+            pss->addr.addr = htonl(antelope.sin_addr.s_addr);
+            pss->addr.id = socket;
 
-            /*
-             * in this protocol, we just use the broadcast action as the chance to
-             * send our own connection-specific data and ignore the broadcast info
-             * that is available in the 'in' parameter
-             */
+            int ret = ap_add_node(getLocalAddress(), pss->addr, pss->client_name);
+
+
+            break;
 
         case LWS_CALLBACK_BROADCAST:
-            n = libwebsocket_write(wsi, p, n, LWS_WRITE_TEXT);
-            if (n < 0) {
-                fprintf(stderr, "ERROR writing to socket");
-                return 1;
+            printf("                                    LWS_CALLBACK_BROADCAST %d %d\n",pss->addr.id,len);
+            if (libwebsocket_write(wsi,p, n, LWS_WRITE_TEXT) < 0) {
+            }
+            
+            if (libwebsocket_write(wsi,in, len, LWS_WRITE_TEXT) < 0) {
             }
             break;
-
         case LWS_CALLBACK_RECEIVE:
             return handle_client_data(context, wsi, user, in, len);
             break;
         case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
             commotion_handshake_info((struct lws_tokens *) (long) user);
-            /* you could return non-zero here and kill the connection */
             break;
         case LWS_CALLBACK_CLOSED:
             msg_client_disconnect(context, wsi, user);
@@ -239,4 +247,38 @@ static json_t* make_msg(int mt,  char* src,  char* dst, json_t* mdata) {
         json_object_set(msg, CWS_FIELD_MSG_DATA, mdata);
     
     return msg;
+}
+
+static int commotion_broadcast(const struct libwebsocket_protocols *protocol,struct libwebsocket_context *context,unsigned char *buf, size_t len) {
+    
+    int n,m;
+    struct libwebsocket *wsi;
+    for (n = 0; n < FD_HASHTABLE_MODULUS; n++) {
+        for (m = 0; m < context->fd_hashtable[n].length; m++) {
+            wsi = context->fd_hashtable[n].wsi[m];
+
+            if (wsi->mode != LWS_CONNMODE_WS_SERVING)
+                continue;
+
+            /*
+             * never broadcast to
+             * non-established connections
+             */
+            if (wsi->state != WSI_STATE_ESTABLISHED)
+                continue;
+
+            /* only broadcast to guys using
+             * requested protocol
+             */
+            if (wsi->protocol != protocol)
+                continue;
+
+            wsi->protocol->callback(context, wsi,
+                    LWS_CALLBACK_BROADCAST,
+                    wsi->user_space,
+                    buf, len);
+        }
+    }
+
+    return 0;
 }

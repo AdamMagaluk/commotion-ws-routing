@@ -53,6 +53,8 @@
 
     CommotionSocket = function(url, protocols,opencb,proxyHost, proxyPort, headers) {
         
+        var _this = this;
+        
         /**
          * commotion-ws protocol message types
          */
@@ -64,7 +66,15 @@
             TOPOLOGY_UPDATE : 4
         };
         
-        this.topologychangecb=function(){}
+        this.topology={};
+        
+        this.topologychangecb={
+            localcallback : function(top){
+                _this.topology = top;
+                _this.topologychangecb.userCallback(_this.topology);
+            },
+            userCallback : function(){}
+        };
         
         
         //Callback map to handle all messages for applications.
@@ -76,7 +86,6 @@
         //Only allow commotion-ws protocol.
         this.ws = new WebSocket(url,"commotion-ws",proxyHost,proxyPort,headers);
         
-        var _this = this;
         // On connection
         this.ws.onopen = function(ret){
             
@@ -92,13 +101,15 @@
         
         // Handle all websocket data
         this.ws.onmessage = function(e){
+            console.log(e.data);
             var json =  eval('(' + e.data + ')');
+            
             if(json.mt == null || typeof json.mt == undefined){
                 console.warn("ws.onmessage - Missing message type.");
                 return;
             }
             switch(json.mt){
-                case MSG_TYPES.TOPOLOGY_UPDATE: return _this.topologychangecb(json);
+                case MSG_TYPES.TOPOLOGY_UPDATE:return _this.topologychangecb.localcallback(json.d);
             }
             
 //            if(typeof _this.callbackmap[json.mt] == "function" )
@@ -134,8 +145,17 @@
     }
     
     CommotionSocket.prototype.ontopologychange = function(cb){
-        this.topologychangecb = cb;
+        this.topologychangecb.userCallback = cb;
     }
     
+    CommotionSocket.prototype.forclients = function(cb){
+        $(this.topology.aps).each(function(){
+            var ap = this.addr;
+            $(this.clients).each(function(){
+                this.ap_host = ap;
+                cb(this);
+            });
+        });
+    }
     
 })();

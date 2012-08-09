@@ -11,20 +11,11 @@
 
 #include "topology.h"
 
-void test(char* a, char* b){
-    printf("A:%s B:%s\n",a,b);
-}
 
 /*
  * 
  */
 int main(int argc, char** argv) {
-    char a[128]="adasd";
-    char b[128]="asdasd";
-    
-    test(a,b);
-    
-    return 0;
     
     init_access_points();
     const int maxx=3;
@@ -32,23 +23,38 @@ int main(int argc, char** argv) {
     int i, j;
     for (i = 0; i < maxx; i++) {
         for (j = 0; j < maxy; j++) {
-            if(ap_add_node(i, j,"test") != 0){
+            struct Address a,b;
+            a.addr = i;
+            a.id = 0;
+            b.addr = j;
+            a.id = 0;
+            if(ap_add_node(a, b,"test") != 0){
                 printf("Exited on %d %d\n",i,j);
             }
         }
     }
     
     for (i = 0; i < maxx; i++) {
-        assert(ap_exists(i) == i);
+        struct Address a,b;
+            a.addr = i;
+            a.id = 0;
+        assert(ap_exists(a) == i);
         for (j = 0; j < maxy; j++) {
-            assert(ap_node_exists(i,j) == j);
+                 b.addr = j;
+            b.id = 0;
+            assert(ap_node_exists(a,b) == j);
         }
     }
     
-    
-    assert(ap_exists(0x0003) == -1);
-    assert(ap_node_exists(0x0003,1) == -1);
-    assert(ap_node_exists(0x0000,5) == -1);
+    struct Address a,b;
+    a.addr = 3;
+    a.id = 0;
+    b.addr = 1;
+    b.id =0;
+    assert(ap_exists(a) == -1);
+    assert(ap_node_exists(a,b) == -1);
+    b.addr = 5;
+    assert(ap_node_exists(a,b) == -1);
     
     display_topology();
     deref_access_points();
