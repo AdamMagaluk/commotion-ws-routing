@@ -36,7 +36,7 @@ extern int commotion_ws_callback(struct libwebsocket_context *context,
             pss->addr.id = socket;
             
             // Add node to topology
-            ap_add_node(getLocalAddress(), pss->addr, pss->client_name);
+            topology_add_node(getLocalAddress(), pss->addr, pss->client_name);
             break;
 
         case LWS_CALLBACK_BROADCAST:
@@ -129,7 +129,7 @@ static int msg_client_connect(struct libwebsocket_context *context,
         fprintf(stderr, "error: missing protocols in message client connect\n");
         return 0;
     }
-    ap_node_protocols(getLocalAddress(), pss->addr, apps);
+    topology_update_node_apps(getLocalAddress(), pss->addr, apps);
     
     // Update topology on connected clients
     update_topology();
@@ -149,7 +149,7 @@ static int msg_client_disconnect(struct libwebsocket_context *context,
 
     struct per_session_data__ws_client* pss = user;
     fprintf(stdout, "log: Client %s disconnected %d\n", pss->client_name,pss->addr.id);
-    ap_remove_node(getLocalAddress(), pss->addr);
+    topology_remove_node(getLocalAddress(), pss->addr);
     
     // Update topology on connected clients
     update_topology();
@@ -186,7 +186,7 @@ static int msg_forward_data(struct libwebsocket_context *context,
     addr_st.addr = json_integer_value(dst_ip);
     addr_st.id = json_integer_value(dst_id);
 
-    struct Address host = return_ap_for_node(addr_st);
+    struct Address host = topology_return_ap_for_node(addr_st);
     struct Address localHost = getLocalAddress();
 
     data = json_object_get(root, CWS_FIELD_MSG_DATA);
@@ -202,7 +202,7 @@ static int msg_forward_data(struct libwebsocket_context *context,
     json_object_set_new(root,CWS_FIELD_SRC,source);
     
     // Handle for locally connected clients
-    if(compare_address(localHost, host) == 1) {
+    if(topology_compare_address(localHost, host) == 1) {
         struct libwebsocket * nodews = wsi_from_fd(context, addr_st.id);
         if (nodews != NULL) {
             // Because we appended the new source address we have to remake packet
@@ -235,7 +235,7 @@ static int msg_req_topology(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, json_t *root) {
 
     struct per_session_data__ws_client* pss = user;
-    json_t* msg = make_msg(COMMOTION_MSG_TOPOLOGY_UPDATE,"127.0.0.1",pss->client_ip,ap_root_topology());
+    json_t* msg = make_msg(COMMOTION_MSG_TOPOLOGY_UPDATE,"127.0.0.1",pss->client_ip,topology_root());
     char* retData = json_dumps(msg, JSON_COMPACT);
     if (retData != NULL) {
         unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + sizeof (retData) + LWS_SEND_BUFFER_POST_PADDING];
@@ -279,7 +279,7 @@ static json_t* make_msg(int mt,  char* src,  char* dst, json_t* mdata) {
  *  @todo - Forward to all other aps.
  */
 void update_topology() {
-    json_t* msg = make_msg(COMMOTION_MSG_TOPOLOGY_UPDATE, "127.0.0.1", "255.255.255.255", ap_root_topology());
+    json_t* msg = make_msg(COMMOTION_MSG_TOPOLOGY_UPDATE, "127.0.0.1", "255.255.255.255", topology_root());
     char *retData = json_dumps(msg, JSON_COMPACT);
     if (retData != NULL) {
         unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + strlen(retData) + LWS_SEND_BUFFER_POST_PADDING];

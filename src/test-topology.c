@@ -17,7 +17,7 @@
  */
 int main(int argc, char** argv) {
     
-    init_access_points();
+    topology_init();
     const int maxx=3;
     const int maxy=5;
     int i, j;
@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
             a.id = 0;
             b.addr = j;
             a.id = 0;
-            if(ap_add_node(a, b,"test") != 0){
+            if(topology_add_node(a, b,"test") != 0){
                 printf("Exited on %d %d\n",i,j);
             }
         }
@@ -38,11 +38,11 @@ int main(int argc, char** argv) {
         struct Address a,b;
             a.addr = i;
             a.id = 0;
-        assert(ap_exists(a) == i);
+        assert(topology_ap_index(a) == i);
         for (j = 0; j < maxy; j++) {
                  b.addr = j;
             b.id = 0;
-            assert(ap_node_exists(a,b) == j);
+            assert(topology_node_index(a,b) == j);
         }
     }
     
@@ -51,13 +51,12 @@ int main(int argc, char** argv) {
     a.id = 0;
     b.addr = 1;
     b.id =0;
-    assert(ap_exists(a) == -1);
-    assert(ap_node_exists(a,b) == -1);
+    assert(topology_ap_index(a) == -1);
+    assert(topology_node_index(a,b) == -1);
     b.addr = 5;
-    assert(ap_node_exists(a,b) == -1);
+    assert(topology_node_index(a,b) == -1);
     
-    display_topology();
-    deref_access_points();
+    topology_deref();
 
     return (EXIT_SUCCESS);
 }

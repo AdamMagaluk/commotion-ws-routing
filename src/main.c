@@ -50,7 +50,7 @@ static struct option options[] = {
 
 int main(int argc, char **argv) {
 
-    init_access_points();
+    topology_init();
 
 
     int n = 0;
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
 #endif
     libwebsocket_context_destroy(context);
 
-    deref_access_points();
+    topology_deref();
 
     return 0;
 }
