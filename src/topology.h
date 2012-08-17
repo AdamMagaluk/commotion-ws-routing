@@ -13,6 +13,9 @@
 #include <stdint.h>
 #include <jansson.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #ifdef	__cplusplus
 extern "C" {
@@ -56,7 +59,11 @@ extern "C" {
     int remove_ap(struct Address ap_addr);
 
     int add_ap(struct Address ap_addr);
+    
+    
+    struct Address return_ap_for_node(struct Address node);
 
+    void addr_struct_to_json(const struct Address node,json_t* addr);
 
     void display_topology();
 
@@ -66,12 +73,17 @@ extern "C" {
 
     // Checks if they are the same.
     int compare_client(json_t* left, json_t* right);
+    
+    
+    int compare_address(struct Address a,struct Address b);
 
-    struct Tree {
-        int a;
-    };
-
-
+    static int string_to_addr(const char* addr,uint32_t* addrint) {
+        struct sockaddr_in antelope;
+        int ret = inet_aton(addr, &antelope.sin_addr); // store IP in antelope
+        *addrint = antelope.sin_addr.s_addr;
+        return ret;
+    }
+    
 #ifdef	__cplusplus
 }
 #endif

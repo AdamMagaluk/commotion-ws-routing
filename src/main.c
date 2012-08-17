@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
     if (!use_ssl)
         cert_path = key_path = NULL;
 
-    context = libwebsocket_create_context(port, interface, protocols,
+    context = libwebsocket_create_context(port, interface, _socket_protocols,
             libwebsocket_internal_extensions,
             cert_path, key_path, -1, -1, opts);
     if (context == NULL) {
@@ -113,7 +113,6 @@ int main(int argc, char **argv) {
 
     buf[LWS_SEND_BUFFER_PRE_PADDING] = 'x';
 
-#define LWS_NO_FORK
 #ifdef LWS_NO_FORK
 
     /*

@@ -23,8 +23,43 @@ html, body{
     height: 100%;
     background-size: 100%;
     font-family: sans-serif;
+    padding-left: 4px;
 }
 
 
 .green {background-color: green;}
 .red{background-color: red;}
+
+.chat-container{
+    float: left;
+}
+#clients {
+    margin-left: 20px;
+    float:left;
+}
+#clients ul {
+    
+}
+#clients li{
+    padding: 5px;
+    margin-bottom: 10px;
+    border: 1px solid gray;
+    background-color: buttonface;
+    cursor: pointer;
+}
+
+#clients .active{
+    background-color: green;
+    color: white;
+    border: 3px solid gray;
+}
+.chatwindow{
+    padding: 4px;
+    background-color: #AAAAAA;
+    width: 750px;
+    height: 350px;
+    margin-bottom: 20px;
+}
+
+.norm{color:black;}
+.error{color:red;}

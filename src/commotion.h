@@ -35,20 +35,62 @@ extern "C" {
 #define MAX_NUMBER_OF_PROTOCOLS 10
 #define MAX_PROTOCOl_NAME_SIZE 50
 
-    
     enum demo_protocols {
-	/* always first */
-	PROTOCOL_HTTP = 0,
+        /* always first */
+        PROTOCOL_HTTP = 0,
 
-	PROTOCOL_COMMOTION_WS,
+        PROTOCOL_COMMOTION_WS,
 
-	/* always last */
-	DEMO_PROTOCOL_COUNT
-};
+        /* always last */
+        DEMO_PROTOCOL_COUNT
+    };
+    
+      /*
+     * one of these is auto-created for each connection and a pointer to the
+     * appropriate instance is passed to the callback in the user parameter
+     *
+     * for this example protocol we use it to individualize the count for each
+     * connection.
+     */
+    struct per_session_data__ws_client {
+        char client_name[128];
+        char client_ip[128];
+        struct Address addr;
+    };
+    
+    
+    extern int callback_http(struct libwebsocket_context *context,
+		struct libwebsocket *wsi,
+		enum libwebsocket_callback_reasons reason, void *user, void *in, size_t len);
+    
+    extern int commotion_ws_callback(struct libwebsocket_context *context,
+            struct libwebsocket *wsi,
+            enum libwebsocket_callback_reasons reason,
+            void *user, void *in, size_t len);
+    
+      /* list of supported protocols and callbacks */
+
+      extern struct libwebsocket_protocols _socket_protocols[] = {
+        /* first protocol must always be HTTP handler */
+
+        {
+            "http-only", /* name */
+            callback_http, /* callback */
+            0 /* per_session_data_size */
+        },
+        {
+            COMMOTION_PROTOCOL_NAME,
+            commotion_ws_callback,
+            sizeof (struct per_session_data__ws_client),
+        },
+        {
+            NULL, NULL, 0 /* End of list */
+        }
+    };
 
 
 /* this protocol server (always the first one) just knows how to do HTTP */
-static int callback_http(struct libwebsocket_context *context,
+extern int callback_http(struct libwebsocket_context *context,
 		struct libwebsocket *wsi,
 		enum libwebsocket_callback_reasons reason, void *user, void *in, size_t len)
 {
@@ -81,19 +123,7 @@ static int callback_http(struct libwebsocket_context *context,
     // Return 0 on success, all else is not valid.
     inline int is_valid_msg_type(int t);
 
-    /*
-     * one of these is auto-created for each connection and a pointer to the
-     * appropriate instance is passed to the callback in the user parameter
-     *
-     * for this example protocol we use it to individualize the count for each
-     * connection.
-     */
-    struct per_session_data__ws_client {
-        char client_name[128];
-        char client_ip[128];
-        struct Address addr;
-    };
-    
+  
     struct Address getLocalAddress(){
         struct Address a;
         a.addr = LOCAL_HOST_ADDR;
@@ -152,6 +182,9 @@ static int callback_http(struct libwebsocket_context *context,
     
     extern int msg_client_disconnect(struct libwebsocket_context *context,
             struct libwebsocket *wsi, void *user);
+    
+    static int msg_forward_data(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len);
 
     /**
      * Handle client_connect
@@ -167,28 +200,7 @@ static int callback_http(struct libwebsocket_context *context,
 
     static json_t* make_msg(int mt, char* src, char* dst,json_t* mdata);
     
-    
-        /* list of supported protocols and callbacks */
-
-     static struct libwebsocket_protocols protocols[] = {
-        /* first protocol must always be HTTP handler */
-
-        {
-            "http-only", /* name */
-            callback_http, /* callback */
-            0 /* per_session_data_size */
-        },
-        {
-            COMMOTION_PROTOCOL_NAME,
-            commotion_ws_callback,
-            sizeof (struct per_session_data__ws_client),
-        },
-        {
-            NULL, NULL, 0 /* End of list */
-        }
-    };
-    
-    static int commotion_broadcast(const struct libwebsocket_protocols *protocol,struct libwebsocket_context *context,unsigned char *buf, size_t len);
+    extern void update_topology();
     
     
 #ifdef	__cplusplus

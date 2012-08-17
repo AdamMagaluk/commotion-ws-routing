@@ -1,6 +1,24 @@
 <div id="connected" class="red" style="float:left">Connected?</div>
 <br>
-<input id="msg" type="text" name="msg"/><button id="send-msg">Send</button>
+<input class="showOnConnect" id="msg" size="40" type="text" name="msg"/><button class="showOnConnect" id="send-msg">Send</button>
+<select id="message-type">
+  <option value="norm">Normal Message</option>
+  <option value="error">Urgent Message</option>
+</select>
 <br>
-<div id="clients">
+
+<br>
+
+<div class="chat-container">
+  <h3>Chat</h3>
+  <div class="chatwindow showOnConnect">
+        <ul>
+            
+        </ul>
+  </div>
+
+</div>
+
+<div class="showOnConnect" id="clients">
+    <ul></ul>
 </div>

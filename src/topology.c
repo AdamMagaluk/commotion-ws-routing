@@ -247,6 +247,29 @@ int ap_remove_node(struct Address ap_addr, struct Address node_addr) {
     return -1;
 }
 
+
+struct Address return_ap_for_node(struct Address node) {
+    struct Address addr;
+    addr.addr = LOCAL_HOST_ADDR;
+    addr.id = 0; 
+    if(ap_node_exists(addr,node) > 0){
+       return addr; 
+    }else{
+        // @todo find ap with node.
+        return addr;
+    }
+}
+
+void addr_struct_to_json(const struct Address node,json_t* addr){
+    json_object_set_new(addr, FIELD_ADDR,json_integer( node.addr));
+    json_object_set_new(addr, FIELD_ID, json_integer(node.id));
+}
+
+int compare_address(struct Address a,struct Address b){
+    if( a.addr == b.addr && a.id ==b.id  ) return 1;
+    else return 0;
+}
+
 const char* addr_to_string(uint32_t ap) {
     
      const int b1=((ap >> (3 * 8)) & 0xff);

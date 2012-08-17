@@ -8,7 +8,6 @@ ACLOCAL_AMFLAGS = -I m4
 
 lib_LTLIBRARIES = libcommotionws.la
 libcommotionws_la_SOURCES = topology.c commotion.c
-                            
 
 bin_PROGRAMS = wsroutingserver test_topology
 wsroutingserver_SOURCES = main.c

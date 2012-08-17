@@ -22,8 +22,6 @@ inline int is_valid_msg_type(int t) {
 static int handle_client_data(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, void *in, size_t len) {
     
-    printf("handle_client_data 1\n");
-    
     int ret = 0;
     json_t *root;
     json_error_t error;
@@ -44,8 +42,10 @@ static int handle_client_data(struct libwebsocket_context *context,
                     ret = msg_client_connect(context, wsi, user, root);
                     break;
                 case COMMOTION_MSG_CLIENT_DISSCONNECTED:
-                case COMMOTION_MSG_FORWARD_MSG:
                     return 0;
+                case COMMOTION_MSG_FORWARD_MSG:
+                    ret = msg_forward_data(context, wsi, user, root,in,len);
+                    break;
                 case COMMOTION_MSG_REQ_TOPOLOGY:
                     ret = msg_req_topology(context, wsi, user, root);
                     break;
@@ -56,9 +56,6 @@ static int handle_client_data(struct libwebsocket_context *context,
         }
         json_decref(root);
     }
-    
-    printf("handle_client_data END\n");
-    
     return ret;
 }
 
@@ -69,19 +66,23 @@ static int msg_client_connect(struct libwebsocket_context *context,
 
     fprintf(stdout, "log: Client connected %d\n",libwebsocket_get_socket_fd(wsi) );
 
-    json_t *data, *protocols;
+    json_t *data, *apps;
     data = json_object_get(root, CWS_FIELD_MSG_DATA);
     if (!json_is_object(data)) {
         fprintf(stderr, "error: missing data arg or not object\n");
         return 0;
     }
 
-    protocols = json_object_get(data, MSG_REGISTER_FIELD_PROTOCOLS);
-    if (!json_is_array(protocols)) {
+    apps = json_object_get(data, MSG_REGISTER_FIELD_PROTOCOLS);
+    if (!json_is_array(apps)) {
         fprintf(stderr, "error: missing protocols in message client connect\n");
         return 0;
     }
-    ap_node_protocols(getLocalAddress(), pss->addr, protocols);
+    ap_node_protocols(getLocalAddress(), pss->addr, apps);
+    
+    // Update topology on connected clients
+    update_topology();
+    
     return 0;
 }
 
@@ -91,13 +92,12 @@ int msg_client_disconnect(struct libwebsocket_context *context,
     struct per_session_data__ws_client* pss = user;
     fprintf(stdout, "log: Client %s disconnected %d\n", pss->client_name,pss->addr.id);
     ap_remove_node(getLocalAddress(), pss->addr);
-
-    unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 10 + LWS_SEND_BUFFER_POST_PADDING];
-    unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
-    sprintf((char *) p, "0987654321");
-    //libwebsockets_broadcast(&protocols[PROTOCOL_COMMOTION_WS], p, 10);
-    commotion_broadcast(&protocols[PROTOCOL_COMMOTION_WS], context, p, 10);
+    
+    // Update topology on connected clients
+    update_topology();
 }
+
+
 
 /**
  * Handle request topology
@@ -146,7 +146,7 @@ int commotion_ws_callback(struct libwebsocket_context *context,
     unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 512 + LWS_SEND_BUFFER_POST_PADDING];
     unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
     struct per_session_data__ws_client *pss = user;
-
+    
     int socket=libwebsocket_get_socket_fd(wsi);
     switch (reason) {
 
@@ -161,16 +161,10 @@ int commotion_ws_callback(struct libwebsocket_context *context,
             pss->addr.id = socket;
 
             int ret = ap_add_node(getLocalAddress(), pss->addr, pss->client_name);
-
-
             break;
 
         case LWS_CALLBACK_BROADCAST:
-            printf("                                    LWS_CALLBACK_BROADCAST %d %d\n",pss->addr.id,len);
-            if (libwebsocket_write(wsi,p, n, LWS_WRITE_TEXT) < 0) {
-            }
-            
-            if (libwebsocket_write(wsi,in, len, LWS_WRITE_TEXT) < 0) {
+            if (libwebsocket_write(wsi,(unsigned char*)in, len, LWS_WRITE_TEXT) < 0) {
             }
             break;
         case LWS_CALLBACK_RECEIVE:
@@ -249,36 +243,99 @@ static json_t* make_msg(int mt,  char* src,  char* dst, json_t* mdata) {
     return msg;
 }
 
-static int commotion_broadcast(const struct libwebsocket_protocols *protocol,struct libwebsocket_context *context,unsigned char *buf, size_t len) {
-    
-    int n,m;
-    struct libwebsocket *wsi;
-    for (n = 0; n < FD_HASHTABLE_MODULUS; n++) {
-        for (m = 0; m < context->fd_hashtable[n].length; m++) {
-            wsi = context->fd_hashtable[n].wsi[m];
-
-            if (wsi->mode != LWS_CONNMODE_WS_SERVING)
-                continue;
-
-            /*
-             * never broadcast to
-             * non-established connections
-             */
-            if (wsi->state != WSI_STATE_ESTABLISHED)
-                continue;
-
-            /* only broadcast to guys using
-             * requested protocol
-             */
-            if (wsi->protocol != protocol)
-                continue;
-
-            wsi->protocol->callback(context, wsi,
-                    LWS_CALLBACK_BROADCAST,
-                    wsi->user_space,
-                    buf, len);
+void update_topology() {
+    json_t* msg = make_msg(COMMOTION_MSG_TOPOLOGY_UPDATE, "127.0.0.1", "255.255.255.255", ap_root_topology());
+    char *retData = json_dumps(msg, JSON_COMPACT);
+    if (retData != NULL) {
+        unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + strlen(retData) + LWS_SEND_BUFFER_POST_PADDING];
+        unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
+        int n;
+        n = sprintf((char *) p, "%s", retData);
+        n = libwebsockets_broadcast(&_socket_protocols[PROTOCOL_COMMOTION_WS], p, n);
+        if (n < 0) {
+            fprintf(stderr, "ERROR writing to socket\n");
         }
+        free(retData);
+    } else {
+        fprintf(stderr, "ERROR failed to dump json data\n");
+    }
+    json_decref(msg);    
+}
+
+static int msg_forward_data(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len) {
+    
+
+    json_t *data, *dst,*dst_id,*dst_ip;
+    dst = json_object_get(root, CWS_FIELD_DST);
+    if (!json_is_object(dst)) {
+        fprintf(stderr, "error: msg_forward_data: missing destination in message\n");
+        return 0;
+    }
+    struct Address addr_st;
+    
+    dst_ip = json_object_get(dst, "ip");
+    dst_id = json_object_get(dst, "id");
+    if (!json_is_integer(dst_ip) || !json_is_integer(dst_id)) {
+        fprintf(stderr, "error: msg_forward_data: destination object failed\n");
+        return 0;
+    }
+    addr_st.addr = json_integer_value(dst_ip);
+    addr_st.id = json_integer_value(dst_id);
+
+    struct Address host = return_ap_for_node(addr_st);
+    struct Address localHost = getLocalAddress();
+
+    data = json_object_get(root, CWS_FIELD_MSG_DATA);
+    if (!json_is_object(data)) {
+        fprintf(stderr, "error: missing data arg or not object\n");
+        return 0;
+    }
+    
+    json_t* msgtype = json_object_get(data, "t");
+    json_t* msgdata = json_object_get(data, "d");
+    if(!json_is_string(msgtype)){
+        fprintf(stderr, "error: message data not string.\n");
+        return 0;
+    }
+    
+    struct per_session_data__ws_client *pss = user;
+    json_t* source=json_object();
+    addr_struct_to_json(pss->addr,source);
+    json_object_set_new(root,CWS_FIELD_SRC,source);
+    
+    // Handle for locally connected clients
+    if(compare_address(localHost, host) == 1) {
+
+        struct libwebsocket * nodews = wsi_from_fd(context, addr_st.id);
+        if (nodews != NULL) {
+
+            char *retData = json_dumps(root, JSON_COMPACT);
+            
+            if (retData != NULL) {
+                
+                unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + strlen(retData) + LWS_SEND_BUFFER_POST_PADDING];
+                unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
+                int n;
+                n = sprintf((char *) p, "%s", retData);
+                if (libwebsocket_write(nodews, p, n, LWS_WRITE_TEXT) < 0) {
+                    fprintf(stderr, "error: failed to send..\n");
+                }
+                
+                free(retData);
+            } else {
+                fprintf(stderr, "ERROR failed to dump json data\n");
+            }
+          
+        }
+
+
+      }// Handle for remote hosts
+    else {
+
     }
 
+
+    
     return 0;
 }
