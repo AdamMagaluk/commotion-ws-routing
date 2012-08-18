@@ -81,8 +81,8 @@ $(document).ready(function(){
 * jquery
 
 ## Dependencies for Server
-* libwebsockets : C Websocket server
-* libjanson : C implementation of json.
+* [libwebsockets](http://git.warmcat.com/cgi-bin/cgit/libwebsockets/) : C Websocket server
+* [libjanson](http://www.digip.org/jansson/) : C implementation of json.
 
 ##Setting up test server
 1. Checkout source for git
