@@ -1,8 +1,7 @@
 #Commotion Websocket Messaging Service (Meshaging)
 
-A websocket server that allows routing of websockets between clients connected to multiple
-commotion access points nodes. It comes with a small js library that implements the protocol specifics and 
-implements a subscriber based messaging system, similar to socket.io
+A websocket server that allows routing of messages between clients connected to multiple
+commotion access points nodes. It comes with a small js library that building on top of the html5 WebSocket object and implements the protocol specifics. Allows for a simple API with a subscriber based messaging system similar to socket.io allowing developers to easily build apps on the system.
 
 The js library and backend service allow for developers to easily create applications that leverage
 Commotion's mesh network and existing browser technology. With this its possible for a developer 

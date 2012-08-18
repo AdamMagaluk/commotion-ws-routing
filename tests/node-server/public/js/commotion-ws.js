@@ -81,7 +81,6 @@
         
         //Callback map to handle all messages for applications.
         this.callbackmap = {};
-        
         //
         this.tmpCallBack = null;
         
