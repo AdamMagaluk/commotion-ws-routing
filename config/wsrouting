@@ -1,9 +1,8 @@
 #!/bin/sh /etc/rc.common
-# Copyright (C) 2006-2011 OpenWrt.org
 
-START=40
-STOP=90
-
+START=91
+STOP=91
+APP=wsrouting
 
 start() {
   wsroutingserver  2> /dev/null > /dev/null &
