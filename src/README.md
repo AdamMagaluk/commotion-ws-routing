@@ -7,15 +7,15 @@ code. The main binary has the name wsroutingserver.
 
 ##Dependencies
 
-*libwebsockets : C Websocket server  
-    *Used as the basis of the program and does most of the heavy lifting with
+* libwebsockets : C Websocket server  
+    * Used as the basis of the program and does most of the heavy lifting with
 regards to the websocket for us. All we do is define callbacks for events the lib
 gives us.
 
-*libjanson : C implementation of json.
-    *To parse incoming protocol message from the clients as every
+* libjanson : C implementation of json.
+    * To parse incoming protocol message from the clients as every
 thing is based in json. 
-    *For holding topology information, I made the choice to use json structs
+    * For holding topology information, I made the choice to use json structs
 for topology information for two reasons, one it sped up development as
 implementing complex tree structures in C can be a pain and in order to format the
 topology information for the client it has to be in json making json dumps of the 
