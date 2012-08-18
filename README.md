@@ -1,6 +1,5 @@
 #Commotion Websocket Messaging Service (Meshaging)
 
-
 A websocket server that allows routing of websockets between clients connected to multiple
 commotion access points nodes. It comes with a small js library that implements the protocol specifics and 
 implements a subscriber based messaging system, similar to socket.io
@@ -62,7 +61,6 @@ $(document).ready(function(){
 
 ```
 
-
 ##Currently Supports
 * Sending messages to individual clients subscribe (unicast)
 * Message subscribing
@@ -72,4 +70,25 @@ $(document).ready(function(){
 ##Roadmap
 * Broadcast message to app
 * Access point (ap) to ap routing of messages
-* js browser storage system for apps
+* js browser storage system for apps and distributed storage system
+* client display name creation system
+* allow disconnect method for signing off
+* timestamp on message, could be done in js or backend
+
+
+## Dependencies for JS lib
+* jquery
+
+## Dependencies for Server
+* libwebsockets : C Websocket server
+* libjanson : C implementation of json.
+
+##Setting up test server
+1. Checkout source for git
+2. run `./configure`
+3. run `make`
+4. run './src/wsroutingserver' to start server
+5. `cd tests/node-server/` and run `node server.js` to start test node html server to serve js and html
+
+
+For more documentation on the server see readme in src

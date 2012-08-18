@@ -14,9 +14,7 @@ AC_PROG_CXX
 # Checks for third party libs
 AC_CHECK_LIB(websockets, main,,AC_MSG_ERROR(missing websockets.))
 AC_CHECK_LIB(z, main,,AC_MSG_ERROR(missing z.))
-
 AC_CHECK_LIB(jansson, main,,AC_MSG_ERROR(missing jansson.))
-
 
 
 echo "================="
