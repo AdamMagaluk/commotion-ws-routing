@@ -23,10 +23,10 @@ topology a one line operation.
  
 ##Important files:
 
-*commotion.c/h - Has all socket event callbacks and client protocol information.
+* commotion.c/h - Has all socket event callbacks and client protocol information.
 Handles adding and removing clients from the topology.
 
-*topology.c/h - Has all functions to add/remove/find/get/ nodes in the topology.
+* topology.c/h - Has all functions to add/remove/find/get/ nodes in the topology.
 
-*main.c - Basic setup of a libwebsocket server straight from libwebsockets example.
+* main.c - Basic setup of a libwebsocket server straight from libwebsockets example.
 Uses a forked architecture. 
