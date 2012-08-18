@@ -1,0 +1,128 @@
+<%+header%>
+
+<head>
+    <script src="/luci-static/resources/jquery.min.js" type="text/javascript"></script>
+    <script src="/luci-static/resources/commotion-ws.js" type="text/javascript"></script>
+
+    <title>Commotion Chat Application</title>
+
+    <style type="text/css">
+        .green {background-color: green;}
+        .red{background-color: red;}
+
+        .chat-container{ float: left; }
+        #clients { margin-left: 20px; float:left; }
+        #clients li{
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid gray;
+            background-color: buttonface;
+            cursor: pointer;
+        }
+
+        #clients .active{
+            background-color: green;
+            color: white;
+            border: 3px solid gray;
+        }
+        .chatwindow{
+            padding: 4px;
+            background-color: #AAAAAA;
+            width: 750px;
+            height: 350px;
+            margin-bottom: 20px;
+        }
+        .norm{color:black;}
+        .error{color:red;}
+    </style>
+</head>
+
+<script type="text/javascript">
+    var ws_server = "ws://"+window.location.hostname+":7681";
+
+    $(document).ready(function(){
+    
+        // Create a application specific data
+        var appData = {
+            clients : []
+        };
+    
+        var cws = new CommotionSocket(ws_server,["chat-server","other-app"],function(){
+            $("#connected").removeClass("red");
+            $("#connected").addClass("green");
+            $(".showOnConnect").show();
+        });
+    
+        cws.onclose(function(){
+            $("#connected").removeClass("green");
+            $("#connected").addClass("red");
+            $(".showOnConnect").hide();
+        });
+    
+        cws.ontopologychange(function(msg){
+       
+            var cliientList = $("#clients ul"); 
+            $(cliientList).html("");
+            appData.clients=[];
+            appData.activeClient = -1;
+            var i=0;
+     
+            cws.forclients(function(client){
+                appData.clients.push(client);
+                $(cliientList).append('<li id="'+(i++)+'">'+client.hostname+"-"+client.id+'</li>');
+            });
+          
+        });
+        
+        $($("#clients li")).live("click",function(id){
+            var idx = $(this).attr('id');
+            appData.activeClient = idx;
+            $(this).addClass("active");
+            $(this).siblings().removeClass("active");
+        });
+    
+        cws.on(["norm","error"],function(ret){
+            var idx=0;
+            cws.forclients(function(client){
+                if(ret.src.address.equals(client.address)){
+                    $('.chatwindow').append('<li class='+ret.message_type+'><b>'+client.hostname+'</b> - '+ret.data+'</li>');
+                    return;
+                }
+                idx++;
+            });
+        })
+
+        $("#send-msg").click(function(){
+            cws.send(appData.clients[appData.activeClient].address,$("#message-type").val(),$(msg).val());
+            $(msg).val("");
+        });
+
+    })
+
+</script>
+
+<div id="connected" class="red" style="float:left">Connected?</div>
+<br>
+<input class="showOnConnect" id="msg" size="40" type="text" name="msg"/><button class="showOnConnect" id="send-msg">Send</button>
+<select id="message-type">
+    <option value="norm">Normal Message</option>
+    <option value="error">Urgent Message</option>
+</select>
+<br>
+
+<br>
+
+<div class="chat-container">
+    <h3>Chat</h3>
+    <div class="chatwindow showOnConnect">
+        <ul>
+        </ul>
+    </div>
+</div>
+
+<div class="showOnConnect" id="clients">
+    <ul></ul>
+</div>
+
+<%=frontpage%>
+<%+footer%>
