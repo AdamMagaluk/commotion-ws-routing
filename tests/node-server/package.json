@@ -2,7 +2,7 @@
   "name" : "test-node-server",
   "description" : "",
   "version" : "0.0.1",
-  "author" : "Adam Magaluk <AdamM@IlluminatingConcepts.com>",
+  "author" : "Adam Magaluk <AdamMagaluk@gmail.com>",
 
   "dependencies": {
     "express": "2.5.x",
