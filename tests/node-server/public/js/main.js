@@ -1,19 +1,13 @@
 var ws_server = "ws://"+window.location.hostname+":7681";
 
-var topology = {
-    '10.1.1.1' : {}
-};
-    
-var connected = false;
-
 $(document).ready(function(){
-    console.log()
     
+    // Create a application specific data
     var appData = {
         clients : []
     };
     
-    var cws = new CommotionSocket(ws_server,["asd","chat-server"],function(){
+    var cws = new CommotionSocket(ws_server,["chat-server","other-app"],function(){
         $("#connected").removeClass("red");
         $("#connected").addClass("green");
         $(".showOnConnect").show();

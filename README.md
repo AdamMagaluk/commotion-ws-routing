@@ -1,43 +1,75 @@
-Commotion Websocket Messaging Service
+#Commotion Websocket Messaging Service (Meshaging)
+
 
 A websocket server that allows routing of websockets between clients connected to multiple
-commotion aps.
+commotion access points nodes. It comes with a small js library that implements the protocol specifics and 
+implements a subscriber based messaging system, similar to socket.io
 
-Version: 0.0.1 ()
-Tagline: 
+The js library and backend service allow for developers to easily create applications that leverage
+Commotion's mesh network and existing browser technology. With this its possible for a developer 
+to create a Commotion app that communicates with clients on the "mesh" 100% based in the clients browser.
+
+```javascript
+// Specifiy the websocket server
+var ws_server = "ws://"+window.location.hostname+":7681";
+
+$(document).ready(function(){
+    
+    /**
+     * Create the CommotionSocket object with the websocket server and
+     * a list of applications to announce to the network.
+     */
+    var cws = new CommotionSocket(ws_server,["chat-server","other-app"],function(){
+        // On connection
+        
+        setTimeout(function(){
+            
+            // Example of sending "Hello World" to each client
+            cws.forclients(function(client){
+                // Send must take the libraries address format which is
+                // { 
+                //    ip:// 32bit number representaion of ip address, host order
+                //    id:// unique id for ip, allows multiple clients with the same ip. 
+                // }
+                cws.send(client.address,"norm","Hello World");
+            });
+            
+        },2500);
+
+    });
+    
+    /**
+     * Subscribe to specific messages this will allow js to callback only messages
+     * that application is listening for.
+     */
+    // Handle messages "norm" and "error" 
+    cws.on(["norm","error"],function(ret){
+        // Callback for message
+    })
+    
+    cws.onclose(function(){
+        // On dissconnect
+    });
+    
+    cws.ontopologychange(function(ret){
+       // Everytime the topology updates
+       
+        // Use for clients to loop through all clients connected.
+        cws.forclients(function(client){
+            // Handle each client
+        });
+    });
+
+```
 
 
-Unix Installation
-=================
-You must use GNU `make' to build SWIG.
+##Currently Supports
+* Sending messages to individual clients subscribe (unicast)
+* Message subscribing
+* Automatic topology updates
+* Topology management in memory 
 
-http://www.gnu.org/software/make/
-
-PCRE needs to be installed on your system to build SWIG, in particular
-pcre-config must be available. If you have PCRE headers and libraries but not
-pcre-config itself or, alternatively, wish to override the compiler or linker
-flags returned by pcre-config, you may set PCRE_LIBS and PCRE_CFLAGS variables
-to be used instead. And if you don't have PCRE at all, the configure script
-will provide instructions for obtaining it.
-
-To build and install , simply type the following:
-
-     % ./configure
-     % make
-     % make install
-
-By default SWIG installs itself in /usr/local.  If you need to install SWIG in
-a different location or in your home directory, use the --prefix option
-to ./configure.  For example:
-
-     % ./configure --prefix=/home/yourname/projects
-     % make
-     % make install
-
-Note: the directory given to --prefix must be an absolute pathname.  Do *NOT* use
-the ~ shell-escape to refer to your home directory.  SWIG won't work properly
-if you do this.
-
-The file INSTALL details more about using configure. Also try
-
-     % ./configure --help.
+##Roadmap
+* Broadcast message to app
+* Access point (ap) to ap routing of messages
+* js browser storage system for apps
