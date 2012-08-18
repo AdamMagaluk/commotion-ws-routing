@@ -92,4 +92,22 @@ $(document).ready(function(){
 5. `cd tests/node-server/` and run `node server.js` to start test node html server to serve js and html
 
 
+##Sample Luci Application
+The package in Commotion installs a sample luci application and js files to the luci-static and lua controller folders.
+
+To enable app in router add the following lines to `commotionfeed/luci-commotion/luasrc/controller/commotion/commotion.lua`
+
+```
+ entry({"commotion", "apps"}, alias("commotion", "apps", "apps"), i18n("Applications"), 10).index = true
+ entry({"commotion", "apps", "chatapp"}, template("commotion/chatapp"), i18n("Chat Application"), 91)
+```
+
+###Files Installed
+* /www/luci-static/resources/commotion-ws.js - JS Lib
+* /www/luci-static/resources/jquery.min.js - Jquery for JS lib
+
+
+
+
+
 For more documentation on the server see readme in src
