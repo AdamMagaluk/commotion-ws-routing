@@ -6,15 +6,16 @@
       "mt" : "XXXX",
 
       // Destination Address
-      "dst" : "10.1.1.1",
+      "dst" : {ip:0xff2222, id:1},
       
       // Source Address
-      "src" : "10.1.1.2",
+      "src" : {ip:0xff2222, id:1},
       
       // Data specific to each message type    
       "d" : {
         // Data specific to each message type    
       }
+      
       
       // Message Types
       0 : Register client
@@ -29,24 +30,13 @@
       d :  {
         p : ["test-app","app2"]
       }
-      
-      - When server recieves this message it fowards message to all connected clients
-      on its server and fowards message to all 1 hop neighbors.
-    
-     Client Dissconects
-     - When client dissconects a message is sent to all other clients connected.
-     d : {}
-    
-     Foward Message
+     
+     Forward Message
      - Used for sending messages to clients on the connected network
      d : {
-        p : "test-app"
-        m : "app-msg-name"
+        t : "app-msg-name"
         d : {} // app msg specific data
      }
-    
-    Request Topology
-    - Requsts 
     
   }
 */
@@ -68,11 +58,15 @@
         
         var _this = this;
 
+        // Latest topololgy from server
         this.topology={};
         
+        // Callback for when topology changes
         this.topologychangecb={
             localcallback : function(top){
+                // Update topology
                 _this.topology = top;
+                // call users callback
                 _this.topologychangecb.userCallback(_this.topology);
             },
             userCallback : function(){}
@@ -81,22 +75,21 @@
         
         //Callback map to handle all messages for applications.
         this.callbackmap = {};
-        //
-        this.tmpCallBack = null;
-        
+
         //Only allow commotion-ws protocol.
         this.ws = new WebSocket(url,"commotion-ws",proxyHost,proxyPort,headers);
         
         // On connection
         this.ws.onopen = function(ret){
-            
-            
+
+            //  Give server a bit of time to settle, not neccessary but ill leave it.
             setTimeout(function(){
-                // Now announce client appliaction protocols to server.
+                // Now announce client appliactions to server.
                 _this._send_formated_msg(MSG_TYPES.REGISTER_CLIENT,undefined,{
                     "p" : protocols
                 });
             },100);
+            
             // If connect callback was given callback.
             if(typeof opencb == "function") opencb(ret);
         }
@@ -230,7 +223,7 @@
      * Message Type - Specific application message name
      * Message Data - Data
      * 
-     * send({ip:"101.1.1.1",id:0},"demoapp","demomessage","Hello")
+     * send({ip:"101.1.1.1",id:0},"demomessage","Hello")
      */
     CommotionSocket.prototype.send = function(node,msgtype,msgdata){
         var dest;
@@ -258,7 +251,6 @@
             data.d = "";
         }
         
-        
         data.d = msgdata;
         data.t = messagetype;
         
@@ -282,6 +274,9 @@
             });
         });
     }
+    
+    
+    
     
     Object.prototype.equals = function(x)
     {
