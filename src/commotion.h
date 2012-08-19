@@ -47,7 +47,8 @@ enum commotion_msg_type {
     COMMOTION_MSG_CLIENT_DISSCONNECTED, // Force dissconnect
     COMMOTION_MSG_FORWARD_MSG, // Foward message to destination
     COMMOTION_MSG_REQ_TOPOLOGY, // Request the topology
-    COMMOTION_MSG_TOPOLOGY_UPDATE // Message sent when topology changes
+    COMMOTION_MSG_TOPOLOGY_UPDATE, // Message sent when topology changes
+    COMMOTION_MSG_BROADCAST_MSG // Broadcast a message to all clients
 };
 
 // In COMMOTION_MSG_CLIENT_REGISTERED payload will have p:[String] for all apps
@@ -185,6 +186,15 @@ static int msg_client_disconnect(struct libwebsocket_context *context,
  */
 static int msg_forward_data(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len);
+
+/**
+ * Handles broadcast message.
+ *  - Broadcasts the message to all active clients using libsockets broadcast
+ * function, modifies packet to add source address.
+ */
+static int msg_broadcast_msg(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len);
+
 
 /**
  * Handles request topology

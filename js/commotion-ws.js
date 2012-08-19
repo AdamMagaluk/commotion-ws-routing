@@ -49,7 +49,8 @@
         CLIENT_DISCONNECT : 1,
         FORWARD_MSG : 2,
         REQUEST_TOPOLOGY : 3,
-        TOPOLOGY_UPDATE : 4
+        TOPOLOGY_UPDATE : 4,
+        BROADCAST_MSG : 5
     };
     
     
@@ -97,7 +98,6 @@
         // Handle all websocket data
         this.ws.onmessage = function(e){
             var json =  eval('(' + e.data + ')');
-            
             if(json.mt == null || typeof json.mt == undefined){
                 console.warn("ws.onmessage - Missing message type.");
                 return;
@@ -106,6 +106,7 @@
                 case MSG_TYPES.TOPOLOGY_UPDATE:
                     return _this.topologychangecb.localcallback(json.d);
                 case MSG_TYPES.FORWARD_MSG:
+                case MSG_TYPES.BROADCAST_MSG:
                     return _this._handle_forward_msg(json);
             }
         };
@@ -217,6 +218,7 @@
         this.topologychangecb.userCallback = cb;
     }
     
+    
     /**
      * Send application message to node.
      * Node - Has to be in the format, {ip:"address",id:"id"}
@@ -257,6 +259,44 @@
         this._send_formated_msg(MSG_TYPES.FORWARD_MSG,dest,data);
         
     }
+    
+    /**
+     * Send application message to node.
+     * Node - Has to be in the format, {ip:"address",id:"id"}
+     * Message Type - Specific application message name
+     * Message Data - Data
+     * 
+     * send({ip:"101.1.1.1",id:0},"demomessage","Hello")
+     */
+    CommotionSocket.prototype.broadcast = function(msgtype,msgdata){
+        var dest={
+                ip:Number(0),
+                id:Number(0)
+            };
+        
+        var messagetype;
+        if(messagetype !== undefined || typeof msgtype !== "string"){
+            console.error("CommotionSocket::send - Message type not a string.");
+        }else{
+            messagetype = msgtype;
+        }
+        
+        var data = {
+            t:null,
+            d:null
+        };
+        if(msgdata === undefined){
+            data.d = "";
+        }
+        
+        data.d = msgdata;
+        data.t = messagetype;
+        
+        this._send_formated_msg(MSG_TYPES.BROADCAST_MSG,dest,data);
+        
+    }
+    
+    
     
     /**
      * Run supplied callback on all clients within all access points.

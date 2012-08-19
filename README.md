@@ -34,6 +34,9 @@ $(document).ready(function(){
                 cws.send(client.address,"norm","Hello World");
             });
             
+            // Example of brodcasting "Hello World Broadcast" to each client
+            cws.broadcast("norm","Hello World Broadcast");
+
         },2500);
 
     });
@@ -69,7 +72,6 @@ $(document).ready(function(){
 * Topology management in memory 
 
 ##Roadmap
-* Broadcast message to app
 * Access point (ap) to ap routing of messages
 * js browser storage system for apps and distributed storage system
 * client display name creation system

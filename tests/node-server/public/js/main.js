@@ -26,7 +26,7 @@ $(document).ready(function(){
         appData.clients=[];
         appData.activeClient = -1;
         var i=0;
-     
+        $(cliientList).append('<li id="'+(i++)+'">All Clients</li>');
         cws.forclients(function(client){
             appData.clients.push(client);
             $(cliientList).append('<li id="'+(i++)+'">'+client.hostname+"-"+client.id+'</li>');
@@ -53,7 +53,12 @@ $(document).ready(function(){
     })
 
     $("#send-msg").click(function(){
-        cws.send(appData.clients[appData.activeClient].address,$("#message-type").val(),$(msg).val());
+        if(appData.activeClient == 0) {
+            cws.broadcast($("#message-type").val(),$(msg).val());
+        }else{
+            cws.send(appData.clients[appData.activeClient].address,$("#message-type").val(),$(msg).val());
+        }
+        
         $(msg).val("");
     });
 

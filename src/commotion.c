@@ -95,6 +95,9 @@ static int handle_client_data(struct libwebsocket_context *context,
                 case COMMOTION_MSG_REQ_TOPOLOGY:
                     ret = msg_req_topology(context, wsi, user, root);
                     break;
+                case COMMOTION_MSG_BROADCAST_MSG:
+                    ret = msg_broadcast_msg(context, wsi, user, root,in,len);
+                    break;
                 default:
                     fprintf(stderr, "error: Message type not valid\n");
             }
@@ -225,6 +228,37 @@ static int msg_forward_data(struct libwebsocket_context *context,
 
     }
     return 0;
+}
+
+/**
+ * Handles broadcast message.
+ *  - Broadcasts the message to all active clients using libsockets broadcast
+ * function, modifies packet to add source address.
+ */
+static int msg_broadcast_msg(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len){
+    
+    // Append source address to message
+    struct per_session_data__ws_client *pss = user;
+    json_t* source=json_object();
+    addr_struct_to_json(pss->addr,source);
+    json_object_set_new(root,CWS_FIELD_SRC,source);    
+    
+
+    char *retData = json_dumps(root, JSON_COMPACT);
+    if (retData != NULL) {
+        unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + strlen(retData) + LWS_SEND_BUFFER_POST_PADDING];
+        unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
+        int n;
+        n = sprintf((char *) p, "%s", retData);
+        n = libwebsockets_broadcast(&_socket_protocols[PROTOCOL_COMMOTION_WS], p, n);
+        if (n < 0) {
+            fprintf(stderr, "ERROR writing to socket\n");
+        }
+        free(retData);
+    } else {
+        fprintf(stderr, "ERROR failed to dump json data\n");
+    }
 }
 
 /**
