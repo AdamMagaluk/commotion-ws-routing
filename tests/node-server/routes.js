@@ -1,7 +1,7 @@
 module.exports = function(app,settings){
 
     app.all('/', function(req, res) {
-        res.render('index');
+        res.render('luci');
     });
     
     app.all('/luci', function(req, res) {
