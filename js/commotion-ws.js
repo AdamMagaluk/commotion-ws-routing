@@ -55,7 +55,7 @@
     
     
     
-    CommotionSocket = function(url, protocols,opencb,proxyHost, proxyPort, headers) {
+    CommotionSocket = function(url, protocols, opencb) {
         
         var _this = this;
 
@@ -78,8 +78,8 @@
         this.callbackmap = {};
 
         //Only allow commotion-ws protocol.
-        this.ws = new WebSocket(url,"commotion-ws",proxyHost,proxyPort,headers);
-        
+        this.ws = new WebSocket(url,"commotion-ws");
+
         // On connection
         this.ws.onopen = function(ret){
 
