@@ -28,6 +28,15 @@ extern "C" {
 #include <libwebsockets.h>
 #include "protocol.h"
 
+
+    struct libwebsocket_context *context;
+    int writable_ = 0;
+    int port = 7681;
+    int use_ssl = 0;
+
+    struct libwebsocket *websocket;
+    int ietf_version = -1;
+    
     /**
      */
     extern int client_callback_http(struct libwebsocket_context *context,
@@ -49,20 +58,20 @@ extern "C" {
             struct libwebsocket *wsi,
             enum libwebsocket_callback_reasons reason,
             void *user, void *in, size_t len) {
-
+        	unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 4096 +
+						  LWS_SEND_BUFFER_POST_PADDING];
+	int l;
         switch (reason) {
-            case LWS_CALLBACK_ESTABLISHED:
-                break;
-
-            case LWS_CALLBACK_BROADCAST:
-                if (libwebsocket_write(wsi, (unsigned char*) in, len, LWS_WRITE_TEXT) < 0) {
-                }
-                break;
-            case LWS_CALLBACK_RECEIVE:
-                break;
-            case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
-                break;
             case LWS_CALLBACK_CLOSED:
+                writable_ = 0;
+                break;
+            case LWS_CALLBACK_CLIENT_ESTABLISHED:
+                libwebsocket_callback_on_writable(context, wsi);
+                break;
+            case LWS_CALLBACK_CLIENT_WRITEABLE:
+                writable_ = 1;
+                libwebsocket_callback_on_writable(context, wsi);
+                usleep(200);
                 break;
             default:
                 break;
@@ -91,25 +100,26 @@ extern "C" {
         }
     };
 
-    extern int send_msg_to_ap(const uint32_t addr, json_t* msg) {
-
-
-        int port = 7681;
-        int use_ssl = 0;
-        struct libwebsocket_context *context;
-        struct libwebsocket *websocket;
-        int ietf_version = -1;
-
+    extern void init_client_contex(){
         context = libwebsocket_create_context(CONTEXT_PORT_NO_LISTEN, NULL,
                 _client_protocols, libwebsocket_internal_extensions,
                 NULL, NULL, -1, -1, 0);
         if (context == NULL) {
             fprintf(stderr, "Creating libwebsocket context failed\n");
-            return 1;
+            return;
         }
+    }
+    
+    extern void destroy_client_contex(){
+        libwebsocket_context_destroy(context);
+    }
+    
+    extern int send_msg_to_ap(const uint32_t addr, json_t* msg) {
+
+        if(context == NULL) return;
+        
 
         const char *address = addr_to_string(ntohl(addr));
-        fprintf(stderr, "Trying to connect to %s\n", address);
         websocket = libwebsocket_client_connect(context, address, port, use_ssl,
                 "/", address, address,
                 COMMOTION_AP_PROTOCOL_NAME, ietf_version);
@@ -118,24 +128,35 @@ extern "C" {
             fprintf(stderr, "libwebsocket dumb connect failed\n");
             return -1;
         }
+        int n = 0;
+	while (n >= 0) {
+		n = libwebsocket_service(context, 1000);
 
-        fprintf(stderr, "Websocket to %s connections opened\n", address);
-        
-            char *retData = json_dumps(msg, JSON_COMPACT);
-            if (retData != NULL) {
-                unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + strlen(retData) + LWS_SEND_BUFFER_POST_PADDING];
-                unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
-                int n;
-                n = sprintf((char *) p, "%s", retData);
-                if (libwebsocket_write(websocket, p, n, LWS_WRITE_TEXT) < 0) {
-                    fprintf(stderr, "error: failed to send..\n");
+		if (n < 0)
+			continue;
+
+            if (writable_ && websocket != NULL) {
+
+                char *retData = json_dumps(msg, JSON_COMPACT);
+                if (retData != NULL) {
+                    unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + strlen(retData) + LWS_SEND_BUFFER_POST_PADDING];
+                    unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
+                    int n;
+                    n = sprintf((char *) p, "%s", retData);
+                    int ret = libwebsocket_write(websocket, p, n, LWS_WRITE_TEXT);
+                    if (ret < 0) {
+                        fprintf(stderr, "error: failed to send.. %d\n", ret);
+                    }
+                    free(retData);
+                } else {
+                    fprintf(stderr, "ERROR failed to dump json data\n");
                 }
-                free(retData);
-            } else {
-                fprintf(stderr, "ERROR failed to dump json data\n");
+                json_decref(msg);
+                break;
             }
-            json_decref(msg);
-         
+	}
+
+        libwebsocket_close_and_free_session(context, websocket, LWS_CLOSE_STATUS_NORMAL);
     }
 
 #ifdef	__cplusplus
