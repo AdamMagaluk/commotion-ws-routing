@@ -133,6 +133,8 @@ $(document).ready(function(){
     });
     
     cws.ontopologychange(function(msg){
+        
+        console.log(msg)
        
         var cliientList = $("#clients ul"); 
         $(cliientList).html("");

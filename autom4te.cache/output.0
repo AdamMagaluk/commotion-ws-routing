@@ -15637,7 +15637,6 @@ else
   as_fn_error $? "missing z." "$LINENO" 5
 fi
 
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -ljansson" >&5
 $as_echo_n "checking for main in -ljansson... " >&6; }
 if ${ac_cv_lib_jansson_main+:} false; then :
@@ -15678,7 +15677,6 @@ _ACEOF
 else
   as_fn_error $? "missing jansson." "$LINENO" 5
 fi
-
 
 
 

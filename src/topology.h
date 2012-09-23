@@ -135,7 +135,13 @@ extern "C" {
      * Return 1 if equal
      */
     int topology_compare_address(const struct Address a,const struct Address b);
-
+    
+    /**
+     * Iterates overall aps, and runs the user specified callback on it.
+     * @param callback
+     */
+    void topology_iterate_ap(void(*callback)(const json_t* ap));
+    
     /**
      * Sets the address fields to the given address.
      * @param node
@@ -149,7 +155,7 @@ extern "C" {
      * @return 
      */
     const char* addr_to_string(const uint32_t ap);
-    static int string_to_addr(const char* addr, uint32_t* addrint);
+    extern int string_to_addr(const char* addr, uint32_t* addrint);
 
 
 #ifdef	__cplusplus

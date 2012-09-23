@@ -51,8 +51,13 @@ static struct option options[] = {
 int main(int argc, char **argv) {
 
     topology_init();
-
-
+    
+    struct Address a;
+    string_to_addr("10.1.60.200",&a.addr);
+    a.id = 1;
+    topology_add_ap(a);
+    
+    
     int n = 0;
     const char *cert_path =
             LOCAL_RESOURCE_PATH"/libwebsockets-test-server.pem";

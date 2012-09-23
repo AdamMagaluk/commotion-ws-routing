@@ -278,6 +278,30 @@ int topology_remove_node(const struct Address ap_addr, const struct Address node
 }
 
 /**
+ * Iterates overall aps, and runs the user specified callback on it.
+ * @param callback
+ */
+void topology_iterate_ap(void(*callback)(const json_t* ap)) {
+    json_t *aps = json_object_get(ap_root, FIELD_ROOT_APS);
+    if (json_is_array(aps)) {
+        int i;
+        for (i = 0; i < json_array_size(aps); i++) {
+            json_t *ap;
+            ap = json_array_get(aps, i);
+            if (!json_is_object(ap)) {
+                fprintf(stderr, "topology_iterate_ap : ap %d not a object\n", i + 1);
+                continue;
+            }
+            // Run user callback on ap
+            callback(ap);
+        }
+    }
+}
+
+
+
+
+/**
  * Sets the address fields to the given address.
  * @param node
  * @param addr
@@ -299,7 +323,7 @@ int topology_compare_address(const struct Address a, const struct Address b) {
 }
 
 const char* addr_to_string(uint32_t ap) {
-
+     
     const int b1 = ((ap >> (3 * 8)) & 0xff);
     const int b2 = ((ap >> (2 * 8)) & 0xff);
     const int b3 = ((ap >> (1 * 8)) & 0xff);
@@ -311,7 +335,7 @@ const char* addr_to_string(uint32_t ap) {
     return buf;
 }
 
-static int string_to_addr(const char* addr, uint32_t* addrint) {
+ int string_to_addr(const char* addr, uint32_t* addrint) {
     struct sockaddr_in antelope;
     int ret = inet_aton(addr, &antelope.sin_addr); // store IP in antelope
     *addrint = antelope.sin_addr.s_addr;

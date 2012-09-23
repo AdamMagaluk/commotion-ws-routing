@@ -1574,10 +1574,10 @@ m4trace:/usr/share/aclocal/lt~obsolete.m4:98: -1- AC_DEFUN([_LT_PROG_CXX])
 m4trace:/usr/share/aclocal-1.11/amversion.m4:17: -1- AC_DEFUN([AM_AUTOMAKE_VERSION], [am__api_version='1.11'
 dnl Some users find AM_AUTOMAKE_VERSION and mistake it for a way to
 dnl require some minimum version.  Point them to the right macro.
-m4_if([$1], [1.11.5], [],
+m4_if([$1], [1.11.6], [],
       [AC_FATAL([Do not call $0, use AM_INIT_AUTOMAKE([$1]).])])dnl
 ])
-m4trace:/usr/share/aclocal-1.11/amversion.m4:36: -1- AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION], [AM_AUTOMAKE_VERSION([1.11.5])dnl
+m4trace:/usr/share/aclocal-1.11/amversion.m4:36: -1- AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION], [AM_AUTOMAKE_VERSION([1.11.6])dnl
 m4_ifndef([AC_AUTOCONF_VERSION],
   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
 _AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
@@ -2236,7 +2236,7 @@ m4trace:configure.ac:2: -1- m4_pattern_allow([^target_alias$])
 m4trace:configure.ac:3: -1- AM_INIT_AUTOMAKE([ws-routing], [0.1], [no-define])
 m4trace:configure.ac:3: -1- m4_pattern_allow([^AM_[A-Z]+FLAGS$])
 m4trace:configure.ac:3: -1- AM_SET_CURRENT_AUTOMAKE_VERSION
-m4trace:configure.ac:3: -1- AM_AUTOMAKE_VERSION([1.11.5])
+m4trace:configure.ac:3: -1- AM_AUTOMAKE_VERSION([1.11.6])
 m4trace:configure.ac:3: -1- _AM_AUTOCONF_VERSION([2.69])
 m4trace:configure.ac:3: -1- m4_pattern_allow([^INSTALL_PROGRAM$])
 m4trace:configure.ac:3: -1- m4_pattern_allow([^INSTALL_SCRIPT$])
@@ -2467,15 +2467,15 @@ m4trace:configure.ac:9: -1- _LT_COMPILER_OPTION([if $compiler PIC flag $_LT_TAGV
 m4trace:configure.ac:9: -1- _LT_LINKER_OPTION([if $compiler static flag $lt_tmp_static_flag works], [lt_cv_prog_compiler_static_works_CXX], [$lt_tmp_static_flag], [], [_LT_TAGVAR(lt_prog_compiler_static, CXX)=])
 m4trace:configure.ac:15: -1- m4_pattern_allow([^HAVE_LIBWEBSOCKETS$])
 m4trace:configure.ac:16: -1- m4_pattern_allow([^HAVE_LIBZ$])
-m4trace:configure.ac:18: -1- m4_pattern_allow([^HAVE_LIBJANSSON$])
-m4trace:configure.ac:31: -1- _m4_warn([obsolete], [AC_OUTPUT should be used without arguments.
+m4trace:configure.ac:17: -1- m4_pattern_allow([^HAVE_LIBJANSSON$])
+m4trace:configure.ac:29: -1- _m4_warn([obsolete], [AC_OUTPUT should be used without arguments.
 You should run autoupdate.], [])
-m4trace:configure.ac:31: -1- m4_pattern_allow([^LIB@&t@OBJS$])
-m4trace:configure.ac:31: -1- m4_pattern_allow([^LTLIBOBJS$])
-m4trace:configure.ac:31: -1- AM_CONDITIONAL([am__EXEEXT], [test -n "$EXEEXT"])
-m4trace:configure.ac:31: -1- m4_pattern_allow([^am__EXEEXT_TRUE$])
-m4trace:configure.ac:31: -1- m4_pattern_allow([^am__EXEEXT_FALSE$])
-m4trace:configure.ac:31: -1- _AM_SUBST_NOTMAKE([am__EXEEXT_TRUE])
-m4trace:configure.ac:31: -1- _AM_SUBST_NOTMAKE([am__EXEEXT_FALSE])
-m4trace:configure.ac:31: -1- _AM_OUTPUT_DEPENDENCY_COMMANDS
-m4trace:configure.ac:31: -1- _LT_PROG_LTMAIN
+m4trace:configure.ac:29: -1- m4_pattern_allow([^LIB@&t@OBJS$])
+m4trace:configure.ac:29: -1- m4_pattern_allow([^LTLIBOBJS$])
+m4trace:configure.ac:29: -1- AM_CONDITIONAL([am__EXEEXT], [test -n "$EXEEXT"])
+m4trace:configure.ac:29: -1- m4_pattern_allow([^am__EXEEXT_TRUE$])
+m4trace:configure.ac:29: -1- m4_pattern_allow([^am__EXEEXT_FALSE$])
+m4trace:configure.ac:29: -1- _AM_SUBST_NOTMAKE([am__EXEEXT_TRUE])
+m4trace:configure.ac:29: -1- _AM_SUBST_NOTMAKE([am__EXEEXT_FALSE])
+m4trace:configure.ac:29: -1- _AM_OUTPUT_DEPENDENCY_COMMANDS
+m4trace:configure.ac:29: -1- _LT_PROG_LTMAIN

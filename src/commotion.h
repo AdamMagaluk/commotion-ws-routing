@@ -15,75 +15,25 @@
 #include <string.h>
 #include <sys/time.h>
 
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <netinet/in.h> 
+#include <string.h> 
+#include <arpa/inet.h>
+
 // LibWebsockets api
 #include <libwebsockets.h>
 
 // Json parsing using libjansson
 #include <jansson.h>
 
-// Commotion topology managment.
-#include "topology.h"
+// Commotion topology management.
+#include "protocol.h"
+#include "client.h"
 
 #ifdef	__cplusplus
 extern "C" {
 #endif
-
-// Base websocket protocol name
-#define COMMOTION_PROTOCOL_NAME "commotion-ws"
-// Message type
-#define CWS_FIELD_MSG_TYPE "mt"
-// Source address, not required for all packets
-#define CWS_FIELD_SRC "src"
-// Destination address, not required for all packets.
-#define CWS_FIELD_DST "dst"
-//Data payload of packet
-#define CWS_FIELD_MSG_DATA "d"
-
-/**
- * Commotion message types
- */
-enum commotion_msg_type {
-    COMMOTION_MSG_CLIENT_REGISTERED, // After connection client sends this with apps
-    COMMOTION_MSG_CLIENT_DISSCONNECTED, // Force dissconnect
-    COMMOTION_MSG_FORWARD_MSG, // Foward message to destination
-    COMMOTION_MSG_REQ_TOPOLOGY, // Request the topology
-    COMMOTION_MSG_TOPOLOGY_UPDATE, // Message sent when topology changes
-    COMMOTION_MSG_BROADCAST_MSG // Broadcast a message to all clients
-};
-
-// In COMMOTION_MSG_CLIENT_REGISTERED payload will have p:[String] for all apps
-#define MSG_REGISTER_FIELD_APPS "p"
-
-// For libwebsockets structure size
-#define MAX_NUMBER_OF_PROTOCOLS 3
-// For libwebsockets structure size
-#define MAX_PROTOCOl_NAME_SIZE 50
-
-enum libwebsockets_protocols {
-    /* always first */
-    PROTOCOL_HTTP = 0,
-
-    PROTOCOL_COMMOTION_WS,
-
-    /* always last */
-    DEMO_PROTOCOL_COUNT
-};
-
-/*
- * one of these is auto-created for each connection and a pointer to the
- * appropriate instance is passed to the callback in the user parameter
- *
- * for this example protocol we use it to individualize the count for each
- * connection.
- */
-struct per_session_data__ws_client {
-    char client_name[128]; // hostname of client
-    char client_ip[128]; // clients ip in text
-    struct Address addr; // Topology Address
-};
-
-
-
 
 /**
  * Initial callback for http connection before websocket protocol takes over.
@@ -105,6 +55,22 @@ extern int commotion_ws_callback(struct libwebsocket_context *context,
         enum libwebsocket_callback_reasons reason,
         void *user, void *in, size_t len);
 
+
+/**
+ * Main entry point for inter ap protocol
+ */
+extern int commotion_ap_callback(struct libwebsocket_context *context,
+        struct libwebsocket *wsi,
+        enum libwebsocket_callback_reasons reason,
+        void *user, void *in, size_t len);
+
+/**
+ * Handle all messages from the access points
+ */
+static int handle_ap_data(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, void *in, size_t len);
+
+
 /**
  * Used by libwebsockets to define callbacks for each protocol
  */
@@ -121,21 +87,26 @@ extern struct libwebsocket_protocols _socket_protocols[] = {
         sizeof (struct per_session_data__ws_client),
     },
     {
+        COMMOTION_AP_PROTOCOL_NAME, 
+        commotion_ap_callback, // Main callback for server
+        sizeof (struct per_session_data__ws_client),
+    },
+    {
         NULL, NULL, 0 /* End of list */
     }
 };
 
 
-/**
- * Temp function to get local address to server.
- * @todo FIX ME it should be calling function to local ip.
- */
-struct Address getLocalAddress() {
-    struct Address a;
-    a.addr = LOCAL_HOST_ADDR;
-    a.id = 0;
-    return a;
-}
+    /**
+     * Temp function to get local address to server.
+     * @todo FIX ME it should be calling function to local ip.
+     */
+    struct Address getLocalAddress() {
+        struct Address a;
+        a.addr = LOCAL_HOST_ADDR;
+        a.id = 0;
+        return a;
+    }
 
 
 /*
@@ -203,16 +174,29 @@ static int msg_broadcast_msg(struct libwebsocket_context *context,
 static int msg_req_topology(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, json_t *root);
 
+static int msg_ap_topology_update(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len);
+
+static int msg_ap_forward_msg(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len);
+
 /**
  * Makes a json_t object with protocol, must free return value.
  */
 static json_t* make_msg(int mt, char* src, char* dst, json_t* mdata);
+
+
+
 
 /**
  *  Broadcasts topology to local clients.
  *  @todo - Forward to all other aps.
  */
 extern void update_topology();
+
+extern void update_toplolgy_on_local_clients();
+
+extern void update_toplolgy_on_remote_ap();
 
 #ifdef	__cplusplus
 }

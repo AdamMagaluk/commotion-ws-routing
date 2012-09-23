@@ -83,11 +83,11 @@ extern "C" {
             return 1;
         }
 
-        const char *address = addr_to_string(addr);
+        const char *address = addr_to_string(ntohl(addr));
         fprintf(stderr, "Trying to connect to %s\n", address);
         wsi_dumb = libwebsocket_client_connect(context, address, port, use_ssl,
                 "/", address, address,
-                _client_protocols[PROTOCOL_COMMOTION_AP].name, ietf_version);
+                COMMOTION_AP_PROTOCOL_NAME, ietf_version);
 
         if (wsi_dumb == NULL) {
             fprintf(stderr, "libwebsocket dumb connect failed\n");

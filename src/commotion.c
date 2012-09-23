@@ -60,6 +60,93 @@ extern int commotion_ws_callback(struct libwebsocket_context *context,
     }
     return 0;
 }
+/**
+ * Main entry point for inter ap protocol
+ */
+extern int commotion_ap_callback(struct libwebsocket_context *context,
+        struct libwebsocket *wsi,
+        enum libwebsocket_callback_reasons reason,
+        void *user, void *in, size_t len) {
+
+    // Get client data
+    struct per_session_data__ws_client *pss = user;
+    // Get fd of socket.
+    int socket=libwebsocket_get_socket_fd(wsi);
+    
+    switch (reason) {
+        case LWS_CALLBACK_ESTABLISHED:
+            // Get ip and hostname and store it in client data
+            libwebsockets_get_peer_addresses(socket, pss->client_name,
+                    sizeof (pss->client_name), pss->client_ip, sizeof (pss->client_ip));
+
+            // Get ip of client as int.
+            struct sockaddr_in antelope;
+            inet_aton(pss->client_ip, &antelope.sin_addr);
+            pss->addr.addr = htonl(antelope.sin_addr.s_addr);
+            pss->addr.id = socket;
+            
+            break;
+        case LWS_CALLBACK_BROADCAST:
+            if (libwebsocket_write(wsi,(unsigned char*)in, len, LWS_WRITE_TEXT) < 0) {
+                // @todo Handle error when write fails
+            }
+            break;
+        case LWS_CALLBACK_RECEIVE:
+            // Send to client data callback
+            return handle_ap_data(context, wsi, user, in, len);
+            break;
+        case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
+            commotion_handshake_info((struct lws_tokens *) (long) user);
+            break;
+        case LWS_CALLBACK_CLOSED:
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
+
+
+
+/**
+ * Handle all messages from the access points
+ *  - Parses the json and tests if it is a protocol,
+ */
+static int handle_ap_data(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, void *in, size_t len) {
+    
+    int ret = 0;
+    json_t *root;
+    json_error_t error;
+    root = json_loadb(in, len, 0, &error);
+    if (!root) {
+        fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
+    } else {
+        json_t *mt = json_object_get(root, CWS_FIELD_MSG_TYPE);
+        if (!json_is_integer(mt)) {
+            fprintf(stderr, "error: Message type not found\n");
+        } else {
+
+            //Get the message type
+            const int msg_type = json_integer_value(mt);
+            switch (msg_type) {
+                case COMMOTION_MSG_TOPOLOGY_UPDATE:
+                    ret = msg_ap_topology_update(context, wsi, user, root,in,len);
+                    break;
+                case COMMOTION_MSG_FORWARD_MSG:
+                    ret = msg_ap_forward_msg(context, wsi, user, root,in,len);
+                    break;
+                default:
+                    fprintf(stderr, "error: Message type not valid\n");
+            }
+
+        }
+        json_decref(root);
+    }
+    return ret;
+}
+
+
 
 /**
  * Handle all messages from the clients
@@ -290,6 +377,17 @@ static int msg_req_topology(struct libwebsocket_context *context,
 }
 
 
+static int msg_ap_topology_update(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len) {
+    printf("msg_ap_topology_update\n");
+}
+
+static int msg_ap_forward_msg(struct libwebsocket_context *context,
+        struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len) {
+    printf("msg_ap_forward_msg\n");
+}
+
+
 /**
  * Makes a json_t object with protocol, must free return value.
  */
@@ -313,6 +411,13 @@ static json_t* make_msg(int mt,  char* src,  char* dst, json_t* mdata) {
  *  @todo - Forward to all other aps.
  */
 void update_topology() {
+
+    update_toplolgy_on_local_clients();
+
+    topology_iterate_ap(update_toplolgy_on_remote_ap);
+}
+
+void update_toplolgy_on_local_clients() {
     json_t* msg = make_msg(COMMOTION_MSG_TOPOLOGY_UPDATE, "127.0.0.1", "255.255.255.255", topology_root());
     char *retData = json_dumps(msg, JSON_COMPACT);
     if (retData != NULL) {
@@ -328,8 +433,32 @@ void update_topology() {
     } else {
         fprintf(stderr, "ERROR failed to dump json data\n");
     }
-    json_decref(msg);    
+    json_decref(msg);
 }
+
+void update_toplolgy_on_remote_ap(json_t* ap) {
+    int apAddr;
+    json_t *addr = json_object_get(ap, FIELD_ADDR);
+    if (json_is_integer(addr)) {
+        apAddr = json_integer_value(addr); 
+        if (apAddr == LOCAL_HOST_ADDR) {
+            return;
+        }
+    }
+    
+    json_t* msg = make_msg(COMMOTION_MSG_TOPOLOGY_UPDATE, "127.0.0.1", "255.255.255.255", ap);
+    send_msg_to_ap(apAddr,msg);
+
+/*
+    char *retData = json_dumps(ap, JSON_COMPACT);
+    if (retData != NULL) {
+        printf("%s",retData);
+        free(retData);
+    }
+    printf("\n");
+*/
+}
+
 
 /*
  * this is just an example of parsing handshake headers, you don't need this
@@ -392,3 +521,4 @@ extern int callback_http(struct libwebsocket_context *context,
     }
     return 0;
 }
+
