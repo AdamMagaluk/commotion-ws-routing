@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     topology_init();
     
     struct Address a;
-    string_to_addr("10.1.60.200",&a.addr);
+    string_to_addr("10.1.40.57",&a.addr);
     a.id = 1;
     topology_add_ap(a);
     
