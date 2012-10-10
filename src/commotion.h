@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
+#include <time.h>
 #include <sys/time.h>
 
 #include <sys/types.h>
@@ -20,6 +21,7 @@
 #include <netinet/in.h> 
 #include <string.h> 
 #include <arpa/inet.h>
+#include <syslog.h>
 
 // LibWebsockets api
 #include <libwebsockets.h>
@@ -34,6 +36,21 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
+
+/* Utility variables */
+
+#define TRACE_ERROR    0, __FILE__, __LINE__
+#define TRACE_WARNING  1, __FILE__, __LINE__
+#define TRACE_NORMAL   2, __FILE__, __LINE__
+#define TRACE_INFO     3, __FILE__, __LINE__
+
+extern int traceLevel;
+
+/* Utility functions */
+
+extern void traceEvent(int eventTraceLevel, char* file, int line, char * format, ...);
+
+/* Protocol functions */
 
 /**
  * Initial callback for http connection before websocket protocol takes over.

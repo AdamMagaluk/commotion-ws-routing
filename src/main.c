@@ -42,8 +42,11 @@ static struct option options[] = {
     { "killmask", no_argument, NULL, 'k'},
     { "interface", required_argument, NULL, 'i'},
     { "closetest", no_argument, NULL, 'c'},
+    { "daemon", no_argument, NULL, 'd'},
     { NULL, 0, 0, 0}
 };
+
+extern int useSyslog;
 
 #include "topology.h"
 #define LOCAL_RESOURCE_PATH  "commotion-ws/";
@@ -76,12 +79,10 @@ int main(int argc, char **argv) {
     unsigned int oldus = 0;
 #endif
 
-    fprintf(stderr, "libwebsockets test server\n"
-            "(C) Copyright 2010-2011 Andy Green <andy@warmcat.com> "
-            "licensed under LGPL2.1\n");
+    int fork_as_daemon=0;
 
     while (n >= 0) {
-        n = getopt_long(argc, argv, "ci:khsp:", options, NULL);
+        n = getopt_long(argc, argv, "ci:khsp:d", options, NULL);
         if (n < 0)
             continue;
         switch (n) {
@@ -100,9 +101,15 @@ int main(int argc, char **argv) {
                 interface = interface_name;
                 break;
             case 'h':
-                fprintf(stderr, "Usage: test-server "
+                printf("libwebsockets test server\n"
+                       "(C) Copyright 2010-2011 Andy Green <andy@warmcat.com> "
+                       "licensed under LGPL2.1\n");
+                printf("Usage: test-server "
                         "[--port=<p>] [--ssl]\n");
                 exit(1);
+            case 'd':
+                fork_as_daemon = 1;
+                break;
         }
     }
 
@@ -113,11 +120,21 @@ int main(int argc, char **argv) {
             libwebsocket_internal_extensions,
             cert_path, key_path, -1, -1, opts);
     if (context == NULL) {
-        fprintf(stderr, "libwebsocket init failed\n");
+        traceEvent(TRACE_ERROR, "libwebsocket init failed");
         return -1;
     }
 
     buf[LWS_SEND_BUFFER_PRE_PADDING] = 'x';
+
+#ifndef WIN32
+    if (fork_as_daemon) {
+        useSyslog=1; // send traceEvent to syslog
+        daemon(0, 0);
+        freopen( "/dev/null", "r", stdin);
+        freopen( "/dev/null", "w", stdout);
+        freopen( "/dev/null", "w", stderr);
+    }
+#endif
 
 #ifdef LWS_NO_FORK
 
@@ -125,7 +142,7 @@ int main(int argc, char **argv) {
      * This example shows how to work with no forked service loop
      */
 
-    fprintf(stderr, " Using no-fork service loop\n");
+    traceEvent(TRACE_NORMAL, "Using no-fork service loop");
 
     n = 0;
     while (n >= 0) {
@@ -151,7 +168,7 @@ int main(int argc, char **argv) {
      * This example shows how to work with the forked websocket service loop
      */
 
-    fprintf(stderr, " Using forked service loop\n");
+    traceEvent(TRACE_NORMAL, "Using forked service loop");
 
     /*
      * This forks the websocket service action into a subprocess so we
@@ -160,7 +177,7 @@ int main(int argc, char **argv) {
 
     n = libwebsockets_fork_service_loop(context);
     if (n < 0) {
-        fprintf(stderr, "Unable to fork service loop %d\n", n);
+        traceEvent(TRACE_ERROR, "Unable to fork service loop %d\n", n);
         return 1;
     }
 

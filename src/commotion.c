@@ -6,6 +6,78 @@
 
 #define LOCAL_HOST_ADDR 0x7F000001
 
+/* Utility functions */
+
+/**
+ * Print debug or log messages
+ * lifted from n2n's n2n.c
+ */
+
+int traceLevel = 2;
+int useSyslog = 0, syslog_opened = 0;
+
+#define TRACE_DATESIZE 32
+
+void traceEvent(int eventTraceLevel, char* file, int line, char * format, ...) {
+    va_list va_ap;
+
+    if(eventTraceLevel <= traceLevel) {
+        char buf[2048];
+        char out_buf[640];
+        char theDate[32];
+        char *extra_msg = "";
+        time_t theTime = time(NULL);
+#ifdef WIN32
+    int i;
+#endif
+
+    /* We have two paths - one if we're logging, one if we aren't
+     *   Note that the no-log case is those systems which don't support it (WIN32),
+     *                                those without the headers !defined(USE_SYSLOG)
+     *                                those where it's parametrically off...
+     */
+
+    memset(buf, 0, sizeof(buf));
+    strftime(theDate, 32, "%d/%b/%Y %H:%M:%S", localtime(&theTime));
+
+    va_start (va_ap, format);
+    vsnprintf(buf, sizeof(buf)-1, format, va_ap);
+    va_end(va_ap);
+
+    if(eventTraceLevel == 0 /* TRACE_ERROR */)
+      extra_msg = "ERROR: ";
+    else if(eventTraceLevel == 1 /* TRACE_WARNING */)
+      extra_msg = "WARNING: ";
+
+    while(buf[strlen(buf)-1] == '\n') buf[strlen(buf)-1] = '\0';
+
+#ifndef WIN32
+    if(useSyslog) {
+      if(!syslog_opened) {
+        openlog("wsrouting", LOG_PID, LOG_DAEMON);
+        syslog_opened = 1;
+      }
+
+      snprintf(out_buf, sizeof(out_buf), "%s%s", extra_msg, buf);
+      syslog(LOG_INFO, out_buf);
+    } else {
+      snprintf(out_buf, sizeof(out_buf), "%s [%11s:%4d] %s%s", theDate, file, line, extra_msg, buf);
+      printf("%s\n", out_buf);
+      fflush(stdout);
+    }
+#else
+    /* this is the WIN32 code */
+	for(i=strlen(file)-1; i>0; i--) if(file[i] == '\\') { i++; break; };
+    snprintf(out_buf, sizeof(out_buf), "%s [%11s:%4d] %s%s", theDate, &file[i], line, extra_msg, buf);
+    printf("%s\n", out_buf);
+    fflush(stdout);
+#endif
+  }
+
+}
+
+
+
 /**
  * Main entry point for the protocol
  *  - On connection it handles adding client to topology and updates topology
@@ -120,11 +192,11 @@ static int handle_ap_data(struct libwebsocket_context *context,
     json_error_t error;
     root = json_loadb(in, len, 0, &error);
     if (!root) {
-        fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
+        traceEvent(TRACE_ERROR, "error: on line %d: %s\n", error.line, error.text);
     } else {
         json_t *mt = json_object_get(root, CWS_FIELD_MSG_TYPE);
         if (!json_is_integer(mt)) {
-            fprintf(stderr, "error: Message type not found\n");
+            traceEvent(TRACE_ERROR, "error: Message type not found\n");
         } else {
 
             //Get the message type
@@ -137,7 +209,7 @@ static int handle_ap_data(struct libwebsocket_context *context,
                     ret = msg_ap_forward_msg(context, wsi, user, root,in,len);
                     break;
                 default:
-                    fprintf(stderr, "error: Message type not valid\n");
+                    traceEvent(TRACE_ERROR, "error: Message type not valid\n");
             }
 
         }
@@ -161,11 +233,11 @@ static int handle_client_data(struct libwebsocket_context *context,
     json_error_t error;
     root = json_loadb(in, len, 0, &error);
     if (!root) {
-        fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
+        traceEvent(TRACE_ERROR, "error: on line %d: %s", error.line, error.text);
     } else {
         json_t *mt = json_object_get(root, CWS_FIELD_MSG_TYPE);
         if (!json_is_integer(mt)) {
-            fprintf(stderr, "error: Message type not found\n");
+            traceEvent(TRACE_ERROR, "error: Message type not found");
         } else {
 
             //Get the message type
@@ -186,7 +258,7 @@ static int handle_client_data(struct libwebsocket_context *context,
                     ret = msg_broadcast_msg(context, wsi, user, root,in,len);
                     break;
                 default:
-                    fprintf(stderr, "error: Message type not valid\n");
+                    traceEvent(TRACE_ERROR, "Message type not valid");
             }
 
         }
@@ -205,18 +277,18 @@ static int msg_client_connect(struct libwebsocket_context *context,
 
     struct per_session_data__ws_client* pss = user;
 
-    fprintf(stdout, "log: Client connected %d\n",libwebsocket_get_socket_fd(wsi) );
+    traceEvent(TRACE_NORMAL, "Client connected %d", libwebsocket_get_socket_fd(wsi) );
 
     json_t *data, *apps;
     data = json_object_get(root, CWS_FIELD_MSG_DATA);
     if (!json_is_object(data)) {
-        fprintf(stderr, "error: missing data arg or not object\n");
+        traceEvent(TRACE_ERROR, "missing data arg or not object");
         return 0;
     }
 
     apps = json_object_get(data, MSG_REGISTER_FIELD_APPS);
     if (!json_is_array(apps)) {
-        fprintf(stderr, "error: missing protocols in message client connect\n");
+        traceEvent(TRACE_ERROR, "missing protocols in message client connect");
         return 0;
     }
     topology_update_node_apps(getLocalAddress(), pss->addr, apps);
@@ -238,7 +310,7 @@ static int msg_client_disconnect(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user) {
 
     struct per_session_data__ws_client* pss = user;
-    fprintf(stdout, "log: Client %s disconnected %d\n", pss->client_name,pss->addr.id);
+    traceEvent(TRACE_NORMAL, "Client %s disconnected %d", pss->client_name,pss->addr.id);
     topology_remove_node(getLocalAddress(), pss->addr);
     
     // Update topology on connected clients
@@ -262,7 +334,7 @@ static int msg_forward_data(struct libwebsocket_context *context,
     json_t *data, *dst,*dst_id,*dst_ip;
     dst = json_object_get(root, CWS_FIELD_DST);
     if (!json_is_object(dst)) {
-        fprintf(stderr, "error: msg_forward_data: missing destination in message\n");
+        traceEvent(TRACE_ERROR, "msg_forward_data: missing destination in message");
         return 0;
     }
     
@@ -270,7 +342,7 @@ static int msg_forward_data(struct libwebsocket_context *context,
     dst_ip = json_object_get(dst, "ip");
     dst_id = json_object_get(dst, "id");
     if (!json_is_integer(dst_ip) || !json_is_integer(dst_id)) {
-        fprintf(stderr, "error: msg_forward_data: destination object failed\n");
+        traceEvent(TRACE_ERROR, "msg_forward_data: destination object failed");
         return 0;
     }
     addr_st.addr = json_integer_value(dst_ip);
@@ -281,7 +353,7 @@ static int msg_forward_data(struct libwebsocket_context *context,
 
     data = json_object_get(root, CWS_FIELD_MSG_DATA);
     if (!json_is_object(data)) {
-        fprintf(stderr, "error: missing data arg or not object\n");
+        traceEvent(TRACE_ERROR, "missing data arg or not object");
         return 0;
     }
     
@@ -303,11 +375,11 @@ static int msg_forward_data(struct libwebsocket_context *context,
                 int n;
                 n = sprintf((char *) p, "%s", retData);
                 if (libwebsocket_write(nodews, p, n, LWS_WRITE_TEXT) < 0) {
-                    fprintf(stderr, "error: failed to send..\n");
+                    traceEvent(TRACE_ERROR, "failed to send...");
                 }
                 free(retData);
             } else {
-                fprintf(stderr, "ERROR failed to dump json data\n");
+                traceEvent(TRACE_ERROR, "failed to dump json data");
             }
         }
     } else {
@@ -340,11 +412,11 @@ static int msg_broadcast_msg(struct libwebsocket_context *context,
         n = sprintf((char *) p, "%s", retData);
         n = libwebsockets_broadcast(&_socket_protocols[PROTOCOL_COMMOTION_WS], p, n);
         if (n < 0) {
-            fprintf(stderr, "ERROR writing to socket\n");
+            traceEvent(TRACE_ERROR, "can't write to socket");
         }
         free(retData);
     } else {
-        fprintf(stderr, "ERROR failed to dump json data\n");
+        traceEvent(TRACE_ERROR, "failed to dump json data");
     }
 }
 
@@ -365,11 +437,11 @@ static int msg_req_topology(struct libwebsocket_context *context,
         n = sprintf((char *) p, "%s", retData);
         n = libwebsocket_write(wsi, p, n, LWS_WRITE_TEXT);
         if (n < 0) {
-            fprintf(stderr, "ERROR writing to socket\n");
+            traceEvent(TRACE_ERROR, "can't write to socket");
         }
         free(retData);
     } else {
-        fprintf(stderr, "ERROR failed to dump json data\n");
+        traceEvent(TRACE_ERROR, "failed to dump json data");
     }
     
     json_decref(msg);
@@ -379,12 +451,12 @@ static int msg_req_topology(struct libwebsocket_context *context,
 
 static int msg_ap_topology_update(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len) {
-    printf("msg_ap_topology_update\n");
+    traceEvent(TRACE_NORMAL, "msg_ap_topology_update");
 }
 
 static int msg_ap_forward_msg(struct libwebsocket_context *context,
         struct libwebsocket *wsi, void *user, json_t *root, void *in, size_t len) {
-    printf("msg_ap_forward_msg\n");
+    traceEvent(TRACE_NORMAL, "msg_ap_forward_msg");
 }
 
 
@@ -427,11 +499,11 @@ void update_toplolgy_on_local_clients() {
         n = sprintf((char *) p, "%s", retData);
         n = libwebsockets_broadcast(&_socket_protocols[PROTOCOL_COMMOTION_WS], p, n);
         if (n < 0) {
-            fprintf(stderr, "ERROR writing to socket\n");
+            traceEvent(TRACE_ERROR, "can't write to socket");
         }
         free(retData);
     } else {
-        fprintf(stderr, "ERROR failed to dump json data\n");
+        traceEvent(TRACE_ERROR, "failed to dump json data");
     }
     json_decref(msg);
 }
@@ -501,7 +573,7 @@ void commotion_handshake_info(struct lws_tokens *lwst) {
         if (lwst[n].token == NULL)
             continue;
 
-        fprintf(stderr, "    %s = %s\n", token_names[n], lwst[n].token);
+        traceEvent(TRACE_NORMAL, "%s = %s", token_names[n], lwst[n].token);
     }
 }
 
