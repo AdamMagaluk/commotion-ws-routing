@@ -35,6 +35,7 @@
 #define LOCAL_HOST_ADDR 0x7F000001
 
 
+
 static struct option options[] = {
     { "help", no_argument, NULL, 'h'},
     { "port", required_argument, NULL, 'p'},
@@ -55,12 +56,6 @@ int main(int argc, char **argv) {
 
     topology_init();
     
-    struct Address a;
-    string_to_addr("10.1.40.57",&a.addr);
-    a.id = 1;
-    topology_add_ap(a);
-    
-    init_client_contex();
             
     int n = 0;
     const char *cert_path =
@@ -75,14 +70,13 @@ int main(int argc, char **argv) {
     int opts = 0;
     char interface_name[128] = "";
     const char *interface = NULL;
-#ifdef LWS_NO_FORK
-    unsigned int oldus = 0;
-#endif
+
 
     int fork_as_daemon=0;
 
     while (n >= 0) {
         n = getopt_long(argc, argv, "ci:khsp:d", options, NULL);
+
         if (n < 0)
             continue;
         switch (n) {
@@ -105,7 +99,7 @@ int main(int argc, char **argv) {
                        "(C) Copyright 2010-2011 Andy Green <andy@warmcat.com> "
                        "licensed under LGPL2.1\n");
                 printf("Usage: test-server "
-                        "[--port=<p>] [--ssl]\n");
+                        "[--port=<p>] [--ssl] [-d Deamonize]\n");
                 exit(1);
             case 'd':
                 fork_as_daemon = 1;
@@ -126,17 +120,20 @@ int main(int argc, char **argv) {
 
     buf[LWS_SEND_BUFFER_PRE_PADDING] = 'x';
 
-#ifndef WIN32
-    if (fork_as_daemon) {
-        useSyslog=1; // send traceEvent to syslog
-        daemon(0, 0);
-        freopen( "/dev/null", "r", stdin);
-        freopen( "/dev/null", "w", stdout);
-        freopen( "/dev/null", "w", stderr);
-    }
-#endif
+    init_client_contex();
 
-#ifdef LWS_NO_FORK
+
+
+    #ifndef WIN32
+        if (fork_as_daemon) {
+            useSyslog=1; // send traceEvent to syslog
+            daemon(0, 0);
+            freopen( "/dev/null", "r", stdin);
+            freopen( "/dev/null", "w", stdout);
+            freopen( "/dev/null", "w", stderr);
+        }
+    #endif
+
 
     /*
      * This example shows how to work with no forked service loop
@@ -161,50 +158,5 @@ int main(int argc, char **argv) {
         n = libwebsocket_service(context, 50);
     }
 
-#else
-
-
-    /*
-     * This example shows how to work with the forked websocket service loop
-     */
-
-    traceEvent(TRACE_NORMAL, "Using forked service loop");
-
-    /*
-     * This forks the websocket service action into a subprocess so we
-     * don't have to take care about it.
-     */
-
-    n = libwebsockets_fork_service_loop(context);
-    if (n < 0) {
-        traceEvent(TRACE_ERROR, "Unable to fork service loop %d\n", n);
-        return 1;
-    }
-
-    while (1) {
-        sleep(2);
-
-        /*
-         * This broadcasts to all dumb-increment-protocol connections
-         * at 20Hz.
-         *
-         * We're just sending a character 'x', in these examples the
-         * callbacks send their own per-connection content.
-         *      
-         * You have to send something with nonzero length to get the
-         * callback actions delivered.
-         *
-         * We take care of pre-and-post padding allocation.
-         */
-
-        // unsigned char *p = &buf[LWS_SEND_BUFFER_PRE_PADDING];
-        // sprintf((char *) p, "1234567890");
-        // libwebsockets_broadcast(&protocols[PROTOCOL_COMMOTION_WS],p, 10);
-    }
-#endif
-    libwebsocket_context_destroy(context);
-    destroy_client_contex();
-    topology_deref();
-    
     return 0;
 }
