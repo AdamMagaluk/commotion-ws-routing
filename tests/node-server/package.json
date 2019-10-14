@@ -5,7 +5,7 @@
   "author" : "Adam Magaluk <AdamMagaluk@gmail.com>",
 
   "dependencies": {
-    "express": "2.5.x",
+    "express": "4.17.x",
     "ejs" : ">=0.4.3"
   },
   "engines": {
